@@ -27,6 +27,7 @@ users/
       home_id_pub.rsa
     encrypted_master
 
+
 config/
   index
   encrypted_master
@@ -44,12 +45,12 @@ keys/
 
 # Q&A
 
-1. How do I add read-only users?
+*Q. How do I add read-only users?*
 
 A delightful question! Simply give the user read-only access to the 
 remote repository to the vault.
 
-2. Should I store my passwords in Github, even if they are encrypted?
+*Q. Should I store my passwords in Github, even if they are encrypted?*
 
 Probably not.  You should use a private git server if you can.  
 
