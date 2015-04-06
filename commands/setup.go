@@ -2,67 +2,26 @@ package commands
 
 import (
 	"fmt"
+	"log"
 	"os"
-	"path"
-	"path/filepath"
 
 	"github.com/jandre/passward/passward"
 	"github.com/jandre/passward/util"
 	prompt "github.com/segmentio/go-prompt"
 )
 
-type SshKeys struct {
-	PublicKeyPath  string
-	PrivateKeyPath string
-}
-
-func (s *SshKeys) GetDescription() string {
-	return fmt.Sprintf("%s (Public), %s (Private)", s.PublicKeyPath, s.PrivateKeyPath)
-}
-
-func makeSshKeyDescriptions(keys []*SshKeys) []string {
+func makeSshKeyDescriptions(keys []*passward.SshKeys) []string {
 	result := make([]string, len(keys))
 	for i, k := range keys {
 
 		result[i] = k.GetDescription()
 	}
 	return result
-
 }
 
-func getSshKeysPath() string {
-	home := os.Getenv("HOME")
-	return path.Join(home, ".ssh")
-}
-
-//
-// list all ssh keys in ~/.ssh
-//
-func detectSshKeys(sshKeysPath string) []*SshKeys {
-	keys := make([]*SshKeys, 0)
-	if util.DirectoryExists(sshKeysPath) {
-
-		files, err := filepath.Glob(path.Join(sshKeysPath, "*.pub"))
-		if err != nil {
-			// TODO: log this maybe?
-			return keys
-		}
-
-		for _, pubKeyFile := range files {
-			privateKeyFile := pubKeyFile[:len(pubKeyFile)-4]
-			if util.FileExists(privateKeyFile) {
-				key := &SshKeys{PublicKeyPath: pubKeyFile, PrivateKeyPath: privateKeyFile}
-				keys = append(keys, key)
-			}
-		}
-	}
-
-	return keys
-}
-
-func ChooseSshKeys() *SshKeys {
-	sshKeysPath := getSshKeysPath()
-	sshKeys := detectSshKeys(sshKeysPath)
+func ChooseSshKeys() *passward.SshKeys {
+	sshKeysPath := passward.GetSshKeysPath()
+	sshKeys := passward.DetectSshKeys(sshKeysPath)
 
 	if sshKeys != nil && len(sshKeys) > 0 {
 		fmt.Printf("passward uses your SSH keys for encryption. We've detected the following keys, choose the ones you want to use: \n")
@@ -98,15 +57,39 @@ func Setup() {
 	fmt.Println("Hello! We'll be installing passward here: ", passwardPath)
 	fmt.Println("(If you don't want it here, please export PASSWARD_HOME=<blah> and re-run `passward setup`.")
 
-	fmt.Println("--")
+	fmt.Println("")
 
 	sshKeys := ChooseSshKeys()
 
+	fmt.Println()
 	fmt.Println("Great! We'll be using the keys at: ", sshKeys.GetDescription())
-	prompt.PasswordMasked("Please enter the passphrase for these keys")
+
+	found := false
+	attempts := 1
+
+	for !found {
+		var passphrase string
+		if attempts > 1 {
+			passphrase = prompt.PasswordMasked(
+				fmt.Sprintf("(attempt %d/3) Please enter the passphrase for the private key", attempts))
+		} else {
+			passphrase = prompt.PasswordMasked("Please enter the passphrase for the private key")
+		}
+		err := sshKeys.ParsePrivateKey(passphrase)
+		if err == nil {
+			break
+		}
+
+		if attempts >= 3 {
+			log.Fatal("Unable to decrypt private key due to:", err)
+
+		}
+		attempts++
+	}
+
+	fmt.Println("Great! We've loaded the key.")
 
 	//prompt.Confirm("We'll be installing .passward at %s, ? ", passwardPath)
-
 	//	installation := passward.NewPassward()
 
 }
