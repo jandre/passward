@@ -12,10 +12,11 @@ import (
 )
 
 type Passward struct {
-	Vaults   []Vault
-	Username string
-	Email    string
-	Path     string `toml:"-"`
+	Vaults     []Vault
+	Email      string
+	Path       string `toml:"-"`
+	PrivateKey string
+	PublicKey  string
 }
 
 func (c *Passward) configPath() string {
@@ -39,7 +40,7 @@ func DetectPasswardPath() string {
 //
 //
 //
-func NewPassward(email string, username string, directory string) (*Passward, error) {
+func NewPassward(email string, directory string) (*Passward, error) {
 	var conf Passward
 	if directory == "" {
 		directory = DetectPasswardPath()
@@ -56,11 +57,6 @@ func NewPassward(email string, username string, directory string) (*Passward, er
 	}
 
 	conf.Email = email
-	conf.Username = username
-	err = conf.Save()
-	if err != nil {
-		return nil, err
-	}
 	return &conf, nil
 }
 

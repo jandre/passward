@@ -24,7 +24,7 @@ func ChooseSshKeys() *passward.SshKeys {
 	sshKeys := passward.DetectSshKeys(sshKeysPath)
 
 	if sshKeys != nil && len(sshKeys) > 0 {
-		fmt.Printf("passward uses your SSH keys for encryption. We've detected the following keys, choose the ones you want to use: \n")
+		fmt.Printf("Wonderful. We've detected the following keypairs, choose the ones you want to use: \n")
 		sshKeyDescriptions := makeSshKeyDescriptions(sshKeys)
 		sshKeyDescriptions = append(sshKeyDescriptions, "None of these, generate new keys for me.")
 		id := prompt.Choose("Select keys to use", sshKeyDescriptions)
@@ -43,6 +43,64 @@ func ChooseSshKeys() *passward.SshKeys {
 	return nil
 }
 
+func chooseAuthMethod(cfg *passward.Passward) {
+
+	authMethods := []string{
+		"Import SSH keys - Use your ssh keys to encrypt your password vaults.",
+		"Generate custom keys - Generate custom public keypair.",
+	}
+
+	fmt.Println("Passward uses public key encryption to store secrets. You can use existing keys from SSH, or generate new ones.")
+	chosen := prompt.Choose("Select your authentication method", authMethods)
+
+	if chosen == 0 {
+		setupSshAuth(cfg)
+	} else {
+		log.Fatal("Sorry, this is not yet supported!")
+	}
+}
+
+func setupSshAuth(cfg *passward.Passward) {
+	sshKeys := ChooseSshKeys()
+
+	fmt.Println()
+	fmt.Println("Great! We'll be using the keypair: ", sshKeys.GetDescription())
+
+	found := false
+	attempts := 1
+
+	for !found {
+		var passphrase string
+		if attempts > 1 {
+			passphrase = prompt.PasswordMasked(
+				fmt.Sprintf("(attempt %d/3) Please enter the passphrase for the private key", attempts))
+		} else {
+			passphrase = prompt.PasswordMasked("Please enter the passphrase for the private key, or just hit enter if there is no password")
+		}
+		err := sshKeys.ParsePrivateKey(passphrase)
+		if err == nil {
+			break
+		}
+
+		if attempts >= 3 {
+			log.Println("Unable to decrypt private key due to:", err)
+			log.Fatal("Looks like there was a major problem decrypting or using your private key.")
+
+		}
+		attempts++
+	}
+
+	err := sshKeys.ParsePublicKey()
+
+	if err != nil {
+		log.Fatal("Unable to parse public key:", err)
+	}
+	fmt.Println("Great! We've loaded the keys and verified everything is great.")
+
+	// convert public key to PEM forma
+
+}
+
 //
 // Setup a new passward installation
 //
@@ -54,45 +112,26 @@ func Setup() {
 		fmt.Println("Please remove this directory, or set environment variable PASSWARD_HOME=<path> to use a different path.")
 	}
 
-	fmt.Println("Hello! We'll be installing passward here: ", passwardPath)
-	fmt.Println("(If you don't want it here, please export PASSWARD_HOME=<blah> and re-run `passward setup`.")
+	fmt.Println("Hello! Welcome to passward setup. We'll be installing passward here: ", passwardPath)
+	fmt.Println("(If you don't want the data files installed here, please export PASSWARD_HOME=<blah> and re-run `passward setup`.)")
 
 	fmt.Println("")
 
-	sshKeys := ChooseSshKeys()
+	email := prompt.StringRequired("Please enter your email. Your email address is also your passward username")
 
-	fmt.Println()
-	fmt.Println("Great! We'll be using the keys at: ", sshKeys.GetDescription())
-
-	found := false
-	attempts := 1
-
-	for !found {
-		var passphrase string
-		if attempts > 1 {
-			passphrase = prompt.PasswordMasked(
-				fmt.Sprintf("(attempt %d/3) Please enter the passphrase for the private key", attempts))
-		} else {
-			passphrase = prompt.PasswordMasked("Please enter the passphrase for the private key")
-		}
-		err := sshKeys.ParsePrivateKey(passphrase)
-		if err == nil {
-			break
-		}
-
-		if attempts >= 3 {
-			log.Fatal("Unable to decrypt private key due to:", err)
-
-		}
-		attempts++
-	}
-
-	err := sshKeys.ParsePublicKey()
+	cfg, err := passward.NewPassward(email, passwardPath)
 
 	if err != nil {
-		log.Fatal("Unable to parse public key:", err)
+		log.Fatal("Unable to save passward config. You can try to re-run `passward setup`.", err)
 	}
-	fmt.Println("Great! We've loaded the key.")
+
+	chooseAuthMethod(cfg)
+
+	err = cfg.Save()
+
+	if err != nil {
+		log.Fatal("Unable to save passward config. You can try to re-run `passward setup`.", err)
+	}
 
 	//prompt.Confirm("We'll be installing .passward at %s, ? ", passwardPath)
 	//	installation := passward.NewPassward()

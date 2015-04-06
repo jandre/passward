@@ -5,6 +5,7 @@ import (
 	"encoding/pem"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"path"
 	"path/filepath"
@@ -23,6 +24,9 @@ type SshKeys struct {
 
 	privateKey interface{}
 	publicKey  ssh.PublicKey
+
+	privateKeyPem string
+	publicKeyPem  string
 }
 
 func (s *SshKeys) GetDescription() string {
@@ -44,7 +48,9 @@ func (s *SshKeys) ParsePublicKey() error {
 	}
 	k, err := ssh.ParsePublicKey(keyBytes)
 	s.publicKey = k
-	return nil
+
+	log.Printf("type is %T string is %s\n", k, string(keyBytes))
+	return err
 }
 
 //
@@ -56,6 +62,8 @@ func (s *SshKeys) ParsePublicKey() error {
 func (s *SshKeys) ParsePrivateKey(passphrase string) error {
 
 	encryptedBytes, err := ioutil.ReadFile(s.PrivateKeyPath)
+
+	s.privateKeyPem = string(encryptedBytes)
 
 	if err != nil {
 		return err
