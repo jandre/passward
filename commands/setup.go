@@ -87,6 +87,11 @@ func Setup() {
 		attempts++
 	}
 
+	err := sshKeys.ParsePublicKey()
+
+	if err != nil {
+		log.Fatal("Unable to parse public key:", err)
+	}
 	fmt.Println("Great! We've loaded the key.")
 
 	//prompt.Confirm("We'll be installing .passward at %s, ? ", passwardPath)

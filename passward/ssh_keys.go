@@ -9,6 +9,8 @@ import (
 	"path"
 	"path/filepath"
 
+	"golang.org/x/crypto/ssh"
+
 	"github.com/jandre/passward/util"
 )
 
@@ -20,6 +22,7 @@ type SshKeys struct {
 	PrivateKeyPath string
 
 	privateKey interface{}
+	publicKey  ssh.PublicKey
 }
 
 func (s *SshKeys) GetDescription() string {
@@ -34,6 +37,13 @@ func (s *SshKeys) ParseKeys(passphrase string) error {
 // validates public key is ok and works with private key
 func (s *SshKeys) ParsePublicKey() error {
 
+	keyBytes, err := ioutil.ReadFile(s.PublicKeyPath)
+
+	if err != nil {
+		return err
+	}
+	k, err := ssh.ParsePublicKey(keyBytes)
+	s.publicKey = k
 	return nil
 }
 
