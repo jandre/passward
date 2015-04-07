@@ -56,7 +56,9 @@ func NewPassward(email string, directory string) (*Passward, error) {
 		return nil, errors.New("passward home already exists:" + directory)
 	}
 
+	conf.Path = directory
 	conf.Email = email
+
 	return &conf, nil
 }
 
@@ -86,6 +88,13 @@ func ReadPassward(directory string) (*Passward, error) {
 // Save saves the config file to ~/passward/config.toml
 //
 func (c *Passward) Save() error {
+
+	if !util.DirectoryExists(c.Path) {
+		if err := os.MkdirAll(c.Path, 0600); err != nil {
+			return err
+		}
+	}
+
 	file, err := os.Create(c.configPath())
 	if err != nil {
 		return err
