@@ -90,7 +90,7 @@ func ReadPassward(directory string) (*Passward, error) {
 func (c *Passward) Save() error {
 
 	if !util.DirectoryExists(c.Path) {
-		if err := os.MkdirAll(c.Path, 0600); err != nil {
+		if err := os.MkdirAll(c.Path, 0700); err != nil {
 			return err
 		}
 	}

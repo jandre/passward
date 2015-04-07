@@ -1,19 +1,56 @@
 package passward
 
 import (
+	"crypto/dsa"
+	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"path"
 	"path/filepath"
 
-	"golang.org/x/crypto/ssh"
-
 	"github.com/jandre/passward/util"
+	"golang.org/x/crypto/ssh"
 )
+
+type rsaPrivateKey struct {
+	*rsa.PrivateKey
+}
+
+type dsaPrivateKey struct {
+	*dsa.PrivateKey
+}
+
+type rsaPublicKey struct {
+	*rsa.PublicKey
+}
+
+func (pk *rsaPublicKey) Type() string {
+	return "ssh-rsa"
+}
+
+func (pk *rsaPublicKey) Marshal() []byte {
+	return nil
+}
+
+func (pk *rsaPublicKey) Verify(data []byte, sig *ssh.Signature) error {
+	return nil
+}
+
+func (pk *rsaPublicKey) toPEM() (string, error) {
+	key, err := x509.MarshalPKIXPublicKey(pk)
+	if err != nil {
+		return "", err
+	}
+	block := pem.Block{Type: "BEGIN PUBLIC KEY", Bytes: key}
+	return string(pem.EncodeToMemory(&block)), nil
+}
+
+type dsaPublicKey struct {
+	*dsa.PublicKey
+}
 
 //
 // Ssh keys management
@@ -46,10 +83,13 @@ func (s *SshKeys) ParsePublicKey() error {
 	if err != nil {
 		return err
 	}
-	k, err := ssh.ParsePublicKey(keyBytes)
+
+	k, comment, opts, _, err := ssh.ParseAuthorizedKey(keyBytes)
+
 	s.publicKey = k
 
-	log.Printf("type is %T string is %s\n", k, string(keyBytes))
+	debug("read key with comment: %s, %s", comment, opts)
+
 	return err
 }
 

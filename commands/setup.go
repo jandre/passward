@@ -108,8 +108,9 @@ func Setup() {
 	passwardPath := passward.DetectPasswardPath()
 
 	if util.DirectoryExists(passwardPath) {
-		fmt.Println("Oh no! We already detected a passward installation at: ", passwardPath, ".")
+		fmt.Println("Oh no! We already detected a passward installation at: ", passwardPath, "")
 		fmt.Println("Please remove this directory, or set environment variable PASSWARD_HOME=<path> to use a different path.")
+		os.Exit(1)
 	}
 
 	fmt.Println("Hello! Welcome to passward setup. We'll be installing passward here: ", passwardPath)
@@ -122,7 +123,8 @@ func Setup() {
 	cfg, err := passward.NewPassward(email, passwardPath)
 
 	if err != nil {
-		log.Fatal("Unable to save passward config. You can try to re-run `passward setup`.", err)
+		fmt.Println("Unable to save passward config. You can try to re-run `passward setup`.", err)
+		os.Exit(1)
 	}
 
 	chooseAuthMethod(cfg)
