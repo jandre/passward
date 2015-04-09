@@ -10,7 +10,7 @@ import (
 	prompt "github.com/segmentio/go-prompt"
 )
 
-func makeSshKeyDescriptions(keys []*passward.SshKeys) []string {
+func makeSshKeyDescriptions(keys []*passward.SshKeyRing) []string {
 	result := make([]string, len(keys))
 	for i, k := range keys {
 
@@ -19,9 +19,9 @@ func makeSshKeyDescriptions(keys []*passward.SshKeys) []string {
 	return result
 }
 
-func ChooseSshKeys() *passward.SshKeys {
-	sshKeysPath := passward.GetSshKeysPath()
-	sshKeys := passward.DetectSshKeys(sshKeysPath)
+func ChooseSshKeyRing() *passward.SshKeyRing {
+	sshKeysPath := passward.GetSshKeyRingPath()
+	sshKeys := passward.DetectSshKeyRing(sshKeysPath)
 
 	if sshKeys != nil && len(sshKeys) > 0 {
 		fmt.Printf("Wonderful. We've detected the following keypairs, choose the ones you want to use: \n")
@@ -61,7 +61,7 @@ func chooseAuthMethod(cfg *passward.Passward) {
 }
 
 func setupSshAuth(cfg *passward.Passward) {
-	sshKeys := ChooseSshKeys()
+	sshKeys := ChooseSshKeyRing()
 
 	fmt.Println()
 	fmt.Println("Great! We'll be using the keypair: ", sshKeys.GetDescription())
@@ -97,8 +97,8 @@ func setupSshAuth(cfg *passward.Passward) {
 	}
 	fmt.Println("Great! We've loaded the keys and verified everything is great.")
 
-	// convert public key to PEM forma
-
+	cfg.PrivateKey = sshKeys.PrivateKeyPath
+	cfg.PublicKey = sshKeys.PublicKeyPath
 }
 
 //
