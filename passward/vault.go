@@ -32,13 +32,17 @@ type VaultUsers struct {
 }
 
 func NewVaultUsers(parentPath string) *VaultUsers {
-
-	vaultUsersFolder = path.Join(parentPath, "users")
-
+	vaultUsersFolder := path.Join(parentPath, "users")
 	result := VaultUsers{Path: vaultUsersFolder}
-
 	return &result
+}
 
+func (vu *VaultUsers) Initialize() {
+	if !util.DirectoryExists(vu.Path) {
+		os.MkdirAll(vu.Path, 0700)
+	}
+
+	// TODO: read users
 }
 
 type User struct {
@@ -47,17 +51,30 @@ type User struct {
 	Email string
 }
 
+func ReadAllVaults(vaultPath string) ([]*Vault, error) {
+	vaults := make([]*Vault, 0)
+
+	return vaults, nil
+}
+
+func ReadVault(vaultPath string, name string) (*Vault, error) {
+	dst := path.Join(vaultPath, name)
+
+	result := Vault{Name: name, Path: dst, users: NewVaultUsers(dst)}
+	result.users.Initialize()
+	return &result, nil
+}
+
 //
 // Create a new vault.
 //
-func NewVault(config *Passward, name string) (*Vault, error) {
-	dst := path.Join(config.Path, name)
+func NewVault(vaultPath string, name string) (*Vault, error) {
+	dst := path.Join(vaultPath, name)
 
 	result := Vault{Name: name, Path: dst, users: NewVaultUsers(dst)}
 
-	if err := result.Initialize(); err != nil {
-		return nil, err
-	}
+	result.users.Initialize()
+
 	return &result, nil
 }
 
@@ -81,7 +98,7 @@ func (v *Vault) Initialize() error {
 }
 
 func (v *Vault) setupDirectoryStructure() error {
-	os.MkdirAll(path.Join(v.Path, "users"), 0700)
+
 	os.MkdirAll(path.Join(v.Path, "config"), 0700)
 	os.MkdirAll(path.Join(v.Path, "keys"), 0700)
 	return nil

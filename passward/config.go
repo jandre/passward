@@ -12,11 +12,30 @@ import (
 )
 
 type Passward struct {
-	Vaults     []Vault
+	Vaults     map[string]*Vault
 	Email      string
 	Path       string `toml:"-"`
 	PrivateKey string
 	PublicKey  string
+}
+
+func (pw *Passward) AddVault(name string) error {
+	// check to see if there is a vault with the name already
+	if pw.Vaults[name] != nil {
+		return errors.New("Vault " + name + " already exists!")
+	}
+
+	if vault, err := NewVault(pw.vaultPath(), name); err != nil {
+		return err
+	} else {
+		pw.Vaults[name] = vault
+	}
+
+	return nil
+}
+
+func (c *Passward) vaultPath() string {
+	return path.Join(c.Path, "vaults")
 }
 
 func (c *Passward) configPath() string {
@@ -56,8 +75,11 @@ func NewPassward(email string, directory string) (*Passward, error) {
 		return nil, errors.New("passward home already exists:" + directory)
 	}
 
+	conf.Vaults = make(map[string]*Vault, 0)
 	conf.Path = directory
 	conf.Email = email
+
+	os.MkdirAll(conf.vaultPath(), 0700)
 
 	return &conf, nil
 }
@@ -66,7 +88,7 @@ func NewPassward(email string, directory string) (*Passward, error) {
 // ReadPassward() will parse a passward config at `configPath`
 //
 func ReadPassward(directory string) (*Passward, error) {
-	var conf Passward
+	var pw Passward
 	directory, err := filepath.Abs(directory)
 
 	if err != nil {
@@ -74,14 +96,20 @@ func ReadPassward(directory string) (*Passward, error) {
 	}
 
 	configPath := filepath.Join(directory, "config.toml")
-	_, err = toml.DecodeFile(configPath, &conf)
+	_, err = toml.DecodeFile(configPath, &pw)
 
-	conf.Path = directory // in case it was moved
 	if err != nil {
 		return nil, err
 	}
+	pw.Path = directory // in case it was moved
+	pw.loadVaults()
 
-	return &conf, nil
+	return &pw, nil
+}
+
+func (pw *Passward) loadVaults() {
+	pw.Vaults = make(map[string]*Vault, 0)
+	// TODO: load existing vaults
 }
 
 //
@@ -100,5 +128,9 @@ func (c *Passward) Save() error {
 		return err
 	}
 	defer file.Close()
-	return toml.NewEncoder(file).Encode(c)
+	if err := toml.NewEncoder(file).Encode(c); err != nil {
+		return err
+	}
+
+	return nil
 }
