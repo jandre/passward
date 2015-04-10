@@ -102,14 +102,12 @@ func ReadPassward(directory string) (*Passward, error) {
 		return nil, err
 	}
 	pw.Path = directory // in case it was moved
-	pw.loadVaults()
+	pw.Vaults, err = ReadAllVaults(pw.vaultPath())
+	if err != nil {
+		return nil, err
+	}
 
 	return &pw, nil
-}
-
-func (pw *Passward) loadVaults() {
-	pw.Vaults = make(map[string]*Vault, 0)
-	// TODO: load existing vaults
 }
 
 //

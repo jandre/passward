@@ -1,6 +1,7 @@
 package passward
 
 import (
+	"io/ioutil"
 	"os"
 	"path"
 
@@ -51,8 +52,25 @@ type User struct {
 	Email string
 }
 
-func ReadAllVaults(vaultPath string) ([]*Vault, error) {
-	vaults := make([]*Vault, 0)
+func ReadAllVaults(vaultPath string) (map[string]*Vault, error) {
+	vaults := make(map[string]*Vault, 0)
+
+	files, err := ioutil.ReadDir(vaultPath)
+
+	if err != nil {
+		return nil, err
+	}
+
+	for _, name := range files {
+		vault, err := ReadVault(vaultPath, name.Name())
+		if err != nil {
+			return nil, err
+		}
+
+		if vault != nil {
+			vaults[name.Name()] = vault
+		}
+	}
 
 	return vaults, nil
 }
