@@ -20,12 +20,12 @@ type Entry struct {
 }
 
 type Vault struct {
-	Name     string
-	Upstream string
-	Path     string
-	Entries  map[string]Entry
-	repo     *git2go.Repository
-	users    *VaultUsers
+	Name           string
+	RemoteUpstream string
+	Path           string             `toml:"-"`
+	Entries        map[string]Entry   `toml:"-"`
+	repo           *git2go.Repository `toml:"-"`
+	users          *VaultUsers        `toml:"-"`
 }
 
 type VaultUsers struct {
@@ -120,6 +120,27 @@ func (v *Vault) setupDirectoryStructure() error {
 	os.MkdirAll(path.Join(v.Path, "config"), 0700)
 	os.MkdirAll(path.Join(v.Path, "keys"), 0700)
 	return nil
+}
+
+func (v *Vault) Save(pw *Passward, commitMsg string) error {
+	// sig := &git2go.Signature{
+	// Name:  pw.Email,
+	// Email: pw.Email,
+	// }
+
+	// idx, err := v.repo.Index()
+
+	// if err != nil {
+	// return err
+	// }
+
+	return nil
+	// err = idx.AddByPath("README")
+	// treeId, err := idx.WriteTree()
+	// tree, err := repo.LookupTree(treeId)
+	// commitId, err := repo.CreateCommit("HEAD", sig, sig, commitMsg, tree)
+
+	// return commitId, treeId
 }
 
 func (v *Vault) LoadVault()    {}

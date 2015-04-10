@@ -21,6 +21,6 @@ func VaultNew(name string) {
 		log.Fatal("Error creating vault: ", err)
 	}
 
-	fmt.Println("Creating new vault: ", name)
+	fmt.Println("Successfully created new vault: ", name)
 
 }
