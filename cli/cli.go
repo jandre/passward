@@ -38,6 +38,9 @@ func Run() {
 		println("Subcommand for `vault` is required.")
 		app.CommandUsage(os.Stderr, vault.FullCommand())
 
+	case vaultNew.FullCommand():
+		commands.VaultNew(*vaultNewName)
+
 	default:
 		app.Usage(os.Stderr)
 	}
