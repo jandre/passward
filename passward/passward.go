@@ -12,11 +12,12 @@ import (
 )
 
 type Passward struct {
-	Vaults     map[string]*Vault
-	Email      string
-	Path       string `toml:"-"`
-	PrivateKey string
-	PublicKey  string
+	Vaults      map[string]*Vault
+	Email       string
+	Path        string `toml:"-"`
+	PrivateKey  string
+	PublicKey   string
+	credentials *SshKeyRing `toml:"-"`
 }
 
 //
@@ -24,6 +25,26 @@ type Passward struct {
 //
 func (pw *Passward) GetVaults() map[string]*Vault {
 	return pw.Vaults
+}
+
+//
+// Get a vault with name = `name`
+//
+func (pw *Passward) GetVault(name string) *Vault {
+	return pw.Vaults[name]
+}
+
+//
+// Unlock a passward by supplying credentials
+//
+func (pw *Passward) Unlock(passphrase string) error {
+	var err error
+	if pw.credentials != nil {
+		debug("already unlocked")
+		return nil
+	}
+	pw.credentials, err = NewSshKeyRing(pw.PublicKey, pw.PrivateKey, "")
+	return err
 }
 
 //

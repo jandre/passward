@@ -22,12 +22,13 @@ type Entry struct {
 
 type Vault struct {
 	Name           string
+	Description    string
 	RemoteUpstream string
 	Path           string           `toml:"-"`
 	Entries        map[string]Entry `toml:"-"`
 	users          *VaultUsers      `toml:"-"`
 	git            *Git             `toml:"-"`
-	userName       string           `toml:"-"`
+	username       string           `toml:"-"`
 	email          string           `toml:"-"`
 }
 
@@ -92,7 +93,7 @@ func ReadVault(vaultPath string, name string) (*Vault, error) {
 
 	vault.Path = dst // in case it was moved
 	vault.users = NewVaultUsers(dst)
-	vault.git = NewGit(dst, vault.userName, vault.email)
+	vault.git = NewGit(dst, vault.username, vault.email)
 	vault.Initialize()
 	return &vault, nil
 }
@@ -107,7 +108,7 @@ func NewVault(vaultPath string, name string, username string, email string) (*Va
 		Path:     dst,
 		users:    NewVaultUsers(dst),
 		email:    email,
-		userName: username,
+		username: username,
 		git:      NewGit(dst, username, email),
 	}
 
@@ -168,7 +169,6 @@ func (v *Vault) Initialize() error {
 		}
 
 	}
-
 	// TODO: actually initialize repo
 	return nil
 }

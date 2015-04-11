@@ -22,12 +22,26 @@ type SshKeyRing struct {
 	publicKey  sshcrypt.PublicKey
 }
 
-func (s *SshKeyRing) GetDescription() string {
-	return fmt.Sprintf("%s (Public), %s (Private)", s.PublicKeyPath, s.PrivateKeyPath)
+func NewSshKeyRing(publicKeyPath string, privateKeyPath string, passphrase string) (*SshKeyRing, error) {
+
+	ssh := SshKeyRing{PublicKeyPath: publicKeyPath, PrivateKeyPath: privateKeyPath}
+
+	err := ssh.ParsePublicKey()
+	if err != nil {
+		return nil, err
+	}
+
+	if err = ssh.ParsePrivateKey(passphrase); err != nil {
+		return nil, err
+	}
+	return &ssh, nil
 }
 
-func (s *SshKeyRing) ParseKeys(passphrase string) error {
-	return nil
+//
+// Get description string
+//
+func (s *SshKeyRing) GetDescription() string {
+	return fmt.Sprintf("%s (Public), %s (Private)", s.PublicKeyPath, s.PrivateKeyPath)
 }
 
 // validates public key is ok and works with private key
