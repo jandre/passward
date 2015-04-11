@@ -4,9 +4,10 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"path/filepath"
 
+	"github.com/BurntSushi/toml"
 	"github.com/jandre/passward/util"
-	git2go "gopkg.in/libgit2/git2go.v22"
 )
 
 type EncryptedValue struct {
@@ -22,10 +23,12 @@ type Entry struct {
 type Vault struct {
 	Name           string
 	RemoteUpstream string
-	Path           string             `toml:"-"`
-	Entries        map[string]Entry   `toml:"-"`
-	repo           *git2go.Repository `toml:"-"`
-	users          *VaultUsers        `toml:"-"`
+	Path           string           `toml:"-"`
+	Entries        map[string]Entry `toml:"-"`
+	users          *VaultUsers      `toml:"-"`
+	git            *Git             `toml:"-"`
+	userName       string           `toml:"-"`
+	email          string           `toml:"-"`
 }
 
 type VaultUsers struct {
@@ -38,11 +41,12 @@ func NewVaultUsers(parentPath string) *VaultUsers {
 	return &result
 }
 
-func (vu *VaultUsers) Initialize() {
+func (vu *VaultUsers) Initialize() error {
 	if !util.DirectoryExists(vu.Path) {
 		os.MkdirAll(vu.Path, 0700)
+		ioutil.WriteFile(path.Join(vu.Path, ".placeholder"), nil, 0700)
 	}
-
+	return nil
 	// TODO: read users
 }
 
@@ -77,70 +81,107 @@ func ReadAllVaults(vaultPath string) (map[string]*Vault, error) {
 
 func ReadVault(vaultPath string, name string) (*Vault, error) {
 	dst := path.Join(vaultPath, name)
+	configPath := filepath.Join(dst, "config.toml")
 
-	result := Vault{Name: name, Path: dst, users: NewVaultUsers(dst)}
-	result.users.Initialize()
-	return &result, nil
+	var vault Vault
+	_, err := toml.DecodeFile(configPath, &vault)
+
+	if err != nil {
+		return nil, err
+	}
+
+	vault.Path = dst // in case it was moved
+	vault.users = NewVaultUsers(dst)
+	vault.Initialize()
+	return &vault, nil
 }
 
 //
 // Create a new vault.
 //
-func NewVault(vaultPath string, name string) (*Vault, error) {
+func NewVault(vaultPath string, name string, username string, email string) (*Vault, error) {
 	dst := path.Join(vaultPath, name)
 
-	result := Vault{Name: name, Path: dst, users: NewVaultUsers(dst)}
+	result := Vault{Name: name,
+		Path:     dst,
+		users:    NewVaultUsers(dst),
+		email:    email,
+		userName: username,
+		git:      NewGit(dst, username, email),
+	}
 
-	result.users.Initialize()
-
+	if err := result.Initialize(); err != nil {
+		return nil, err
+	}
 	return &result, nil
+}
+
+func (v *Vault) configPath() string {
+	return path.Join(v.Path, "config.toml")
+}
+
+func (v *Vault) saveConfig() error {
+	file, err := os.Create(v.configPath())
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	if err := toml.NewEncoder(file).Encode(v); err != nil {
+		return err
+	}
+	return nil
+
 }
 
 //
 // Initialize the new vault by performing a git init at path, etc.
 //
 func (v *Vault) Initialize() error {
+	var err error
 
 	// it's already setup
 	if util.DirectoryExists(v.Path) {
-		return nil
-	}
-
-	if repo, err := git2go.InitRepository(v.Path, false); err != nil {
-		return err
+		if err = v.git.Initialize(); err != nil {
+			return err
+		}
+		if err = v.users.Initialize(); err != nil {
+			return err
+		}
 	} else {
-		v.repo = repo
+
+		debug("initializing vault: %s", v.Path)
+
+		if err = v.git.Initialize(); err != nil {
+			return err
+		}
+		if err = v.users.Initialize(); err != nil {
+			return err
+		}
+
+		if err := v.setupDirectoryStructure(); err != nil {
+			return err
+		}
+
+		if err := v.saveConfig(); err != nil {
+			return err
+		}
+
 	}
 
-	return v.setupDirectoryStructure()
+	// TODO: actually initialize repo
+	return nil
 }
 
 func (v *Vault) setupDirectoryStructure() error {
-
 	os.MkdirAll(path.Join(v.Path, "config"), 0700)
+	ioutil.WriteFile(path.Join(v.Path, "config", ".placeholder"), nil, 0700)
 	os.MkdirAll(path.Join(v.Path, "keys"), 0700)
+	ioutil.WriteFile(path.Join(v.Path, "keys", ".placeholder"), nil, 0700)
 	return nil
 }
 
-func (v *Vault) Save(pw *Passward, commitMsg string) error {
-	// sig := &git2go.Signature{
-	// Name:  pw.Email,
-	// Email: pw.Email,
-	// }
-
-	// idx, err := v.repo.Index()
-
-	// if err != nil {
-	// return err
-	// }
-
-	return nil
-	// err = idx.AddByPath("README")
-	// treeId, err := idx.WriteTree()
-	// tree, err := repo.LookupTree(treeId)
-	// commitId, err := repo.CreateCommit("HEAD", sig, sig, commitMsg, tree)
-
-	// return commitId, treeId
+func (v *Vault) Save(commitMsg string) error {
+	return v.git.CommitAllChanges(commitMsg)
 }
 
 func (v *Vault) LoadVault()    {}

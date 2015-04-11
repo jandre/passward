@@ -25,9 +25,13 @@ func (pw *Passward) AddVault(name string) error {
 		return errors.New("Vault " + name + " already exists!")
 	}
 
-	if vault, err := NewVault(pw.vaultPath(), name); err != nil {
+	if vault, err := NewVault(pw.vaultPath(), name, pw.Email, pw.Email); err != nil {
 		return err
 	} else {
+		if err = vault.Initialize(); err != nil {
+			return err
+		}
+		vault.Save("New vault created.")
 		pw.Vaults[name] = vault
 	}
 
