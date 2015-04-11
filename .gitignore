@@ -3,3 +3,4 @@ bin
 .vagrant
 *.sw*
 .vault
+watch.sh
