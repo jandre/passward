@@ -63,16 +63,24 @@ func (g *Git) CommitAllChanges(msg string) error {
 		return err
 	}
 
-	err = idx.AddAll([]string{"*/**", "*"}, git2go.IndexAddDefault, nil)
+	err = idx.AddAll([]string{"**"}, git2go.IndexAddDefault, nil)
+
 	if err != nil {
 		return err
 	}
+
 	oid, err := idx.WriteTree()
 	if err != nil {
 		return err
 	}
 
 	sig := g.makeSignature()
+
+	tree, err := g.repo.LookupTree(oid)
+
+	if err != nil {
+		return err
+	}
 
 	if branch, err := g.repo.Head(); branch != nil {
 		tip, err = g.repo.LookupCommit(branch.Target())
@@ -81,17 +89,18 @@ func (g *Git) CommitAllChanges(msg string) error {
 		}
 	}
 
-	tree, err := g.repo.LookupTree(oid)
-
-	if err != nil {
-		return err
-	}
-
 	if tip != nil {
 		commit, err = g.repo.CreateCommit("HEAD", sig, sig, msg, tree, tip)
 	} else {
 		commit, err = g.repo.CreateCommit("HEAD", sig, sig, msg, tree)
 	}
+
+	if err != nil {
+		return err
+	}
+
+	// writes the index to disk
+	err = idx.Write()
 
 	debug("returned commit: %s", commit)
 	return err

@@ -31,7 +31,9 @@ func (pw *Passward) AddVault(name string) error {
 		if err = vault.Initialize(); err != nil {
 			return err
 		}
-		vault.Save("New vault created.")
+		if err = vault.Save("New vault created."); err != nil {
+			return err
+		}
 		pw.Vaults[name] = vault
 	}
 

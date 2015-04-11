@@ -92,6 +92,7 @@ func ReadVault(vaultPath string, name string) (*Vault, error) {
 
 	vault.Path = dst // in case it was moved
 	vault.users = NewVaultUsers(dst)
+	vault.git = NewGit(dst, vault.userName, vault.email)
 	vault.Initialize()
 	return &vault, nil
 }
