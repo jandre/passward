@@ -41,6 +41,9 @@ func Run() {
 	case vaultNew.FullCommand():
 		commands.VaultNew(*vaultNewName)
 
+	case vaultList.FullCommand():
+		commands.VaultList()
+
 	default:
 		app.Usage(os.Stderr)
 	}

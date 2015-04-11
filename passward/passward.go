@@ -19,6 +19,16 @@ type Passward struct {
 	PublicKey  string
 }
 
+//
+// GetVaults vaults in ~/.passward/vaults
+//
+func (pw *Passward) GetVaults() map[string]*Vault {
+	return pw.Vaults
+}
+
+//
+// Add a vault to the ~/.passward/vaults
+//
 func (pw *Passward) AddVault(name string) error {
 	// check to see if there is a vault with the name already
 	if pw.Vaults[name] != nil {
