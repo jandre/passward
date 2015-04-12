@@ -21,15 +21,16 @@ type Entry struct {
 }
 
 type Vault struct {
-	Name           string
-	Description    string
-	RemoteUpstream string
-	Path           string           `toml:"-"`
-	Entries        map[string]Entry `toml:"-"`
-	users          *VaultUsers      `toml:"-"`
-	git            *Git             `toml:"-"`
-	username       string           `toml:"-"`
-	email          string           `toml:"-"`
+	Name             string
+	Description      string
+	RemoteUpstream   string
+	Path             string           `toml:"-"`
+	Entries          map[string]Entry `toml:"-"`
+	users            *VaultUsers      `toml:"-"`
+	git              *Git             `toml:"-"`
+	username         string           `toml:"-"`
+	email            string           `toml:"-"`
+	masterPassphrase []byte
 }
 
 type VaultUsers struct {
@@ -117,6 +118,10 @@ func NewVault(vaultPath string, name string, username string, email string) (*Va
 	}
 	return &result, nil
 }
+
+// func (v *Vault) AddUser(email string, publicKey string) {
+
+// }
 
 func (v *Vault) configPath() string {
 	return path.Join(v.Path, "config.toml")
