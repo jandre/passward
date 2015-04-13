@@ -1,13 +1,17 @@
 package passward
 
 import (
+	"crypto/rand"
+	"errors"
 	"io/ioutil"
+	"log"
 	"os"
 	"path"
 	"path/filepath"
 
 	"github.com/BurntSushi/toml"
 	"github.com/jandre/passward/util"
+	"github.com/jandre/sshcrypt"
 )
 
 type EncryptedValue struct {
@@ -21,26 +25,89 @@ type Entry struct {
 }
 
 type Vault struct {
-	Name             string
-	Description      string
-	RemoteUpstream   string
-	Path             string           `toml:"-"`
-	Entries          map[string]Entry `toml:"-"`
-	users            *VaultUsers      `toml:"-"`
-	git              *Git             `toml:"-"`
-	username         string           `toml:"-"`
-	email            string           `toml:"-"`
-	masterPassphrase []byte
+	Name           string
+	Description    string
+	RemoteUpstream string
+	Path           string           `toml:"-"`
+	Entries        map[string]Entry `toml:"-"`
+	users          *VaultUsers      `toml:"-"`
+	git            *Git             `toml:"-"`
+	username       string           `toml:"-"`
+	email          string           `toml:"-"`
 }
 
 type VaultUsers struct {
-	Path string
+	Path  string
+	users map[string]*VaultUser
+}
+
+type VaultUser struct {
+	path            string
+	email           string
+	publicKeyString string
+	encryptedKey    string
+	publicKey       sshcrypt.PublicKey
+}
+
+func (vu *VaultUser) Save() error {
+	if !util.DirectoryExists(vu.path) {
+		if err := os.MkdirAll(vu.path, 0700); err != nil {
+			return err
+		}
+	}
+	keyfile := vu.publicKeyFile()
+	if err := ioutil.WriteFile(keyfile, []byte(vu.publicKeyString), 0600); err != nil {
+		return err
+	}
+
+	encryptedMaster := vu.encryptedMasterFile()
+	if err := ioutil.WriteFile(encryptedMaster, []byte(vu.encryptedKey), 0600); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (vu *VaultUser) encryptedMasterFile() string {
+	return path.Join(vu.path, "encrypted_master")
+}
+
+func (vu *VaultUser) publicKeyFile() string {
+	return path.Join(vu.path, "key")
+}
+
+func NewVaultUser(usersPath string, email string, publicKey string, encryptedKey string) (*VaultUser, error) {
+	var user VaultUser
+	var err error
+	user.path = path.Join(usersPath, email)
+	user.email = email
+	user.encryptedKey = encryptedKey
+	user.publicKeyString = publicKey
+
+	user.publicKey, err = sshcrypt.ParsePublicKey([]byte(publicKey))
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &user, nil
+}
+
+func ReadVaultUser(pathToUser string) (*VaultUser, error) {
+	// TODO email := path.Base(pathToUser)
+	return nil, nil
 }
 
 func NewVaultUsers(parentPath string) *VaultUsers {
 	vaultUsersFolder := path.Join(parentPath, "users")
-	result := VaultUsers{Path: vaultUsersFolder}
+	result := VaultUsers{Path: vaultUsersFolder, users: make(map[string]*VaultUser, 0)}
 	return &result
+}
+
+func (vu *VaultUsers) AddUser(email string,
+	publicKeyString string,
+	encryptedKey string) error {
+
+	return nil
 }
 
 func (vu *VaultUsers) Initialize() error {
@@ -50,12 +117,6 @@ func (vu *VaultUsers) Initialize() error {
 	}
 	return nil
 	// TODO: read users
-}
-
-type User struct {
-	Name  string
-	Keys  []string
-	Email string
 }
 
 func ReadAllVaults(vaultPath string) (map[string]*Vault, error) {
@@ -119,10 +180,6 @@ func NewVault(vaultPath string, name string, username string, email string) (*Va
 	return &result, nil
 }
 
-// func (v *Vault) AddUser(email string, publicKey string) {
-
-// }
-
 func (v *Vault) configPath() string {
 	return path.Join(v.Path, "config.toml")
 }
@@ -174,15 +231,26 @@ func (v *Vault) Initialize() error {
 		}
 
 	}
-	// TODO: actually initialize repo
 	return nil
+}
+
+func (v *Vault) generateKey() ([]byte, error) {
+	bytes := make([]byte, 128)
+	count, err := rand.Read(bytes)
+	if err != nil {
+		return nil, err
+	}
+	if count != 128 {
+		return nil, errors.New("Not enough random bytes generated")
+	}
+	return bytes, nil
 }
 
 func (v *Vault) setupDirectoryStructure() error {
 	os.MkdirAll(path.Join(v.Path, "config"), 0700)
-	ioutil.WriteFile(path.Join(v.Path, "config", ".placeholder"), nil, 0700)
+	ioutil.WriteFile(path.Join(v.Path, "config", ".placeholder"), nil, 0600)
 	os.MkdirAll(path.Join(v.Path, "keys"), 0700)
-	ioutil.WriteFile(path.Join(v.Path, "keys", ".placeholder"), nil, 0700)
+	ioutil.WriteFile(path.Join(v.Path, "keys", ".placeholder"), nil, 0600)
 	return nil
 }
 
@@ -190,9 +258,18 @@ func (v *Vault) Save(commitMsg string) error {
 	return v.git.CommitAllChanges(commitMsg)
 }
 
-func (v *Vault) LoadVault()    {}
-func (v *Vault) AddEntry()     {}
-func (v *Vault) DeleteEntry()  {}
-func (v *Vault) AddUser()      {}
-func (v *Vault) RemoveUser()   {}
-func (v *Vault) SetMasterKey() {}
+// seed the repository
+func (v *Vault) Seed(creds *SshKeyRing) error {
+	masterPassphrase, err := v.generateKey()
+	if err != nil {
+		return err
+	}
+
+	str, err := creds.EncryptAndBase64(masterPassphrase)
+	if err != nil {
+		log.Println("XXX ERROR", err)
+		return err
+	}
+
+	return v.users.AddUser(v.email, creds.PublicKeyString(), str)
+}

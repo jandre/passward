@@ -1,6 +1,7 @@
 package passward
 
 import (
+	"encoding/base64"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -20,6 +21,35 @@ type SshKeyRing struct {
 
 	privateKey sshcrypt.PrivateKey
 	publicKey  sshcrypt.PublicKey
+
+	publicKeyString  string
+	privateKeyString string
+}
+
+func (s *SshKeyRing) PublicKeyString() string {
+	return s.publicKeyString
+}
+
+func (s *SshKeyRing) DecryptBase64(base64str string) ([]byte, error) {
+	data, err := base64.StdEncoding.DecodeString(base64str)
+	if err != nil {
+		return nil, err
+	}
+
+	decrypted, err := s.privateKey.DecryptBytes(data)
+	if err != nil {
+		return nil, err
+	}
+	return decrypted, nil
+}
+
+func (s *SshKeyRing) EncryptAndBase64(data []byte) (string, error) {
+	cipherText, err := s.publicKey.EncryptBytes(data)
+	if err != nil {
+		return "", err
+	}
+
+	return base64.StdEncoding.EncodeToString(cipherText), nil
 }
 
 func NewSshKeyRing(publicKeyPath string, privateKeyPath string, passphrase string) (*SshKeyRing, error) {
@@ -60,6 +90,7 @@ func (s *SshKeyRing) ParsePublicKey() error {
 	}
 	debug("read key with comment: %s, %s", comment, opts)
 	s.publicKey = ret
+	s.publicKeyString = string(keyBytes)
 
 	return nil
 }
@@ -84,6 +115,7 @@ func (s *SshKeyRing) ParsePrivateKey(passphrase string) error {
 		return err
 
 	}
+	s.privateKeyString = string(encryptedBytes)
 
 	return nil
 }

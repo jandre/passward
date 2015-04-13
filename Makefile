@@ -16,6 +16,7 @@ build:
 	@mkdir -p bin/
 	@$(ECHO) "$(OK_COLOR)==> Building$(NO_COLOR)"
 	@go build github.com/jandre/passward/passward
+	@go build github.com/jandre/passward/commands
 	@go build -o bin/passward
 
 deps:

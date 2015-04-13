@@ -43,7 +43,7 @@ func (pw *Passward) Unlock(passphrase string) error {
 		debug("already unlocked")
 		return nil
 	}
-	pw.credentials, err = NewSshKeyRing(pw.PublicKey, pw.PrivateKey, "")
+	pw.credentials, err = NewSshKeyRing(pw.PublicKey, pw.PrivateKey, passphrase)
 	return err
 }
 
@@ -59,9 +59,19 @@ func (pw *Passward) AddVault(name string) error {
 	if vault, err := NewVault(pw.vaultPath(), name, pw.Email, pw.Email); err != nil {
 		return err
 	} else {
+
+		if pw.credentials == nil {
+			return errors.New("Credentials must be unlocked.")
+		}
+
 		if err = vault.Initialize(); err != nil {
 			return err
 		}
+
+		if err = vault.Seed(pw.credentials); err != nil {
+			return err
+		}
+
 		if err = vault.Save("New vault created."); err != nil {
 			return err
 		}
