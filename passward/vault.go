@@ -32,6 +32,11 @@ func (v *Vault) Users() map[string]*VaultUser {
 func (v *Vault) unlockMasterKey() ([]byte, error) {
 
 	keys := v.credentials.GetKeys()
+
+	if keys == nil {
+		return nil, errors.New("No keys found - did you call vault.Unlock()?")
+	}
+
 	user := v.users.LookupByEmail(v.credentials.Email)
 
 	if user == nil {
@@ -46,11 +51,13 @@ func (v *Vault) AddEntry(name string, user string, passphrase string, desc strin
 	if err != nil {
 		return err
 	}
-	v.entries.Add(name, "user", user, key)
+	v.entries.Add(name, "username", user, key)
 	v.entries.Add(name, "passphrase", passphrase, key)
 	v.entries.Add(name, "description", desc, key)
-	v.Save("New entry: " + name)
-	return nil
+	if err := v.entries.Save(); err != nil {
+		return err
+	}
+	return v.Save("New entry: " + name)
 }
 
 func ReadAllVaults(vaultPath string, creds *Credentials) (map[string]*Vault, error) {

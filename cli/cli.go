@@ -23,6 +23,12 @@ var (
 	vaultShowName = vaultShow.Arg("name", "Name of the vault to show").Required().String()
 	vaultList     = vault.Command("list", "List all vaults.")
 
+	addSecret         = app.Command("add-secret", "Add a secret.")
+	addSecretName     = addSecret.Arg("vault", "Name of the vault add the secret to.").Required().String()
+	addSecretSite     = addSecret.Flag("site", "Name of the site.").Required().String()
+	addSecretUsername = addSecret.Flag("user", "Username").Required().String()
+	addSecretPassword = addSecret.Flag("password", "Password").String()
+
 	vaultPull = vault.Command("clone", "Clone a remote vault.")
 	vaultSync = vault.Command("sync", "Sync local vault with a remote vault.")
 )
@@ -47,6 +53,9 @@ func Run() {
 
 	case vaultList.FullCommand():
 		commands.VaultList()
+
+	case addSecret.FullCommand():
+		commands.VaultSecretAdd(*addSecretName, *addSecretSite, *addSecretUsername, *addSecretPassword)
 
 	default:
 		app.Usage(os.Stderr)

@@ -1,13 +1,14 @@
 package commands
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/jandre/passward/passward"
 	"github.com/segmentio/go-prompt"
 )
 
-func VaultSecretAdd(name string, key string, value string) {
+func VaultSecretAdd(name string, site string, username string, password string) {
 
 	passwardPath := passward.DetectPasswardPath()
 
@@ -24,6 +25,13 @@ func VaultSecretAdd(name string, key string, value string) {
 	}
 
 	passphrase := prompt.PasswordMasked("Enter your passphrase to unlock your keys (empty for none)")
-	pw.Unlock(passphrase)
+	if err := pw.Unlock(passphrase); err != nil {
+		log.Fatal("Invalid passphrase.", err)
+	}
 
+	if err := vault.AddEntry(site, username, password, ""); err != nil {
+		log.Fatal("Unable to add entry for: "+site, err)
+	}
+
+	fmt.Println("Successfully saved.")
 }
