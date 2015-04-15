@@ -75,6 +75,11 @@ type VaultUser struct {
 	publicKey          sshcrypt.PublicKey
 }
 
+func (vu *VaultUser) UnlockMasterKey(keyring *SshKeyRing) ([]byte, error) {
+	// TODO: assert public keys match??
+	return keyring.DecryptBase64(vu.encryptedMasterKey)
+}
+
 func (vu *VaultUser) Email() string {
 	return vu.email
 }

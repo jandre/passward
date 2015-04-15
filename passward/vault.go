@@ -12,46 +12,44 @@ import (
 	"github.com/jandre/passward/util"
 )
 
-type EncryptedValue struct {
-	Path string
-}
-
-type Entry struct {
-	Name   string
-	Path   string
-	Values map[string]EncryptedValue
-}
+const KEYSIZE = 128
 
 type Vault struct {
 	Name           string
 	Description    string
 	RemoteUpstream string
-	Path           string           `toml:"-"`
-	Entries        map[string]Entry `toml:"-"`
-	users          *VaultUsers      `toml:"-"`
-	credentials    *Credentials     `toml:"-"`
-	git            *Git             `toml:"-"`
+	Path           string        `toml:"-"`
+	entries        *VaultEntries `toml:"-"`
+	users          *VaultUsers   `toml:"-"`
+	credentials    *Credentials  `toml:"-"`
+	git            *Git          `toml:"-"`
 }
 
 func (v *Vault) Users() map[string]*VaultUser {
 	return v.users.users
 }
 
-func (v *Vault) unlockMasterPassphrase() ([]byte, error) {
+func (v *Vault) unlockMasterKey() ([]byte, error) {
 
-	// keys := v.credentials.GetKeys()
-	// user := v.users.LookupByEmail(v.credentials.Email)
+	keys := v.credentials.GetKeys()
+	user := v.users.LookupByEmail(v.credentials.Email)
 
-	// if user == nil {
-	// return nil, errors.New("No vault user found to unlock passphrase")
-	// }
+	if user == nil {
+		return nil, errors.New("No vault user found to unlock passphrase")
+	}
 
-	// XX: TODO
-	return nil, nil
+	return user.UnlockMasterKey(keys)
 }
 
 func (v *Vault) AddEntry(name string, user string, passphrase string, desc string) error {
-	// XXX: todo
+	key, err := v.unlockMasterKey()
+	if err != nil {
+		return err
+	}
+	v.entries.Add(name, "user", user, key)
+	v.entries.Add(name, "passphrase", passphrase, key)
+	v.entries.Add(name, "description", desc, key)
+	v.Save("New entry: " + name)
 	return nil
 }
 
@@ -93,6 +91,7 @@ func ReadVault(vaultPath string, name string, creds *Credentials) (*Vault, error
 	vault.users = NewVaultUsers(dst)
 	vault.credentials = creds
 	vault.git = NewGit(dst, creds.Name, creds.Email)
+	vault.entries = NewVaultEntries(dst)
 	vault.Initialize()
 	return &vault, nil
 }
@@ -106,6 +105,7 @@ func NewVault(vaultPath string, name string, creds *Credentials) (*Vault, error)
 	result := Vault{Name: name,
 		Path:        dst,
 		users:       NewVaultUsers(dst),
+		entries:     NewVaultEntries(dst),
 		credentials: creds,
 		git:         NewGit(dst, creds.Name, creds.Email),
 	}
@@ -147,47 +147,45 @@ func (v *Vault) Initialize() error {
 		if err = v.users.Initialize(); err != nil {
 			return err
 		}
+		if err = v.entries.Initialize(); err != nil {
+			return err
+		}
 	} else {
 
 		debug("initializing vault: %s", v.Path)
 
 		if err = v.git.Initialize(); err != nil {
+			debug("error initializing git: %s", err)
 			return err
 		}
+
+		if err = v.entries.Initialize(); err != nil {
+			debug("error initializing entries: %s", err)
+			return err
+		}
+
 		if err = v.users.Initialize(); err != nil {
+			debug("error initializing users: %s", err)
 			return err
 		}
-
-		if err := v.setupDirectoryStructure(); err != nil {
-			return err
-		}
-
 		if err := v.saveConfig(); err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
 
 func (v *Vault) generateKey() ([]byte, error) {
-	bytes := make([]byte, 128)
+
+	bytes := make([]byte, KEYSIZE)
 	count, err := rand.Read(bytes)
 	if err != nil {
 		return nil, err
 	}
-	if count != 128 {
+	if count != KEYSIZE {
 		return nil, errors.New("Not enough random bytes generated")
 	}
 	return bytes, nil
-}
-
-func (v *Vault) setupDirectoryStructure() error {
-	os.MkdirAll(path.Join(v.Path, "config"), 0700)
-	ioutil.WriteFile(path.Join(v.Path, "config", ".placeholder"), nil, 0600)
-	os.MkdirAll(path.Join(v.Path, "keys"), 0700)
-	ioutil.WriteFile(path.Join(v.Path, "keys", ".placeholder"), nil, 0600)
-	return nil
 }
 
 func (v *Vault) Save(commitMsg string) error {

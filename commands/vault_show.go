@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/jandre/passward/passward"
@@ -28,9 +29,9 @@ func VaultShow(name string) {
 	}
 
 	users := vault.Users()
-	log.Printf("-- Found %d users\n", len(users))
+	fmt.Printf("-- Found %d users\n", len(users))
 
 	for _, user := range users {
-		log.Println("\tUser:", user.Email())
+		fmt.Println("\tUser:", user.Email())
 	}
 }
