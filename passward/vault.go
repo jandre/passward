@@ -28,10 +28,27 @@ type Vault struct {
 	RemoteUpstream string
 	Path           string           `toml:"-"`
 	Entries        map[string]Entry `toml:"-"`
+	users          *VaultUsers      `toml:"-"`
+	credentials    *Credentials     `toml:"-"`
+	git            *Git             `toml:"-"`
+}
 
-	users       *VaultUsers  `toml:"-"`
-	credentials *Credentials `toml:"-"`
-	git         *Git         `toml:"-"`
+func (v *Vault) unlockMasterPassphrase() ([]byte, error) {
+
+	// keys := v.credentials.GetKeys()
+	// user := v.users.LookupByEmail(v.credentials.Email)
+
+	// if user == nil {
+	// return nil, errors.New("No vault user found to unlock passphrase")
+	// }
+
+	// XX: TODO
+	return nil, nil
+}
+
+func (v *Vault) AddEntry(name string, user string, passphrase string, desc string) error {
+	// XXX: todo
+	return nil
 }
 
 func ReadAllVaults(vaultPath string, creds *Credentials) (map[string]*Vault, error) {

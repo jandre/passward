@@ -1,10 +1,10 @@
 package commands
 
 import (
-	"fmt"
 	"log"
 
 	"github.com/jandre/passward/passward"
+	"github.com/segmentio/go-prompt"
 )
 
 func VaultSecretAdd(name string, key string, value string) {
@@ -17,10 +17,13 @@ func VaultSecretAdd(name string, key string, value string) {
 		log.Fatal("There was a problem loading the configuration. Did you run `passward setup?`", err)
 	}
 
-	if err = pw.AddVault(name); err != nil {
-		log.Fatal("Error creating vault: ", err)
+	vault := pw.GetVault(name)
+
+	if vault == nil {
+		log.Fatal("Vault not found: " + name)
 	}
 
-	fmt.Println("Successfully created new vault: ", name)
+	passphrase := prompt.PasswordMasked("Enter your passphrase to unlock your keys (empty for none)")
+	pw.Unlock(passphrase)
 
 }

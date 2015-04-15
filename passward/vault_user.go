@@ -18,6 +18,51 @@ type VaultUsers struct {
 	users map[string]*VaultUser
 }
 
+func NewVaultUsers(parentPath string) *VaultUsers {
+	vaultUsersFolder := path.Join(parentPath, "users")
+	result := VaultUsers{path: vaultUsersFolder, users: make(map[string]*VaultUser, 0)}
+	return &result
+}
+
+// add a new vault user
+func (vu *VaultUsers) AddUser(email string, publicKeyString string, masterPassphrase []byte) error {
+	user, err := NewVaultUser(vu.path, email, publicKeyString)
+	if err != nil {
+		return err
+	}
+
+	if err := user.SetEncryptedMasterKey(masterPassphrase); err != nil {
+		return err
+	}
+
+	if err := user.Save(); err != nil {
+		return err
+	}
+	vu.users[email] = user
+	return nil
+}
+
+func (vu *VaultUsers) Initialize() error {
+	if !util.DirectoryExists(vu.path) {
+		os.MkdirAll(vu.path, 0700)
+		ioutil.WriteFile(path.Join(vu.path, ".placeholder"), nil, 0700)
+	} else {
+		files, _ := ioutil.ReadDir(vu.path)
+		for _, name := range files {
+			user, err := ReadVaultUser(path.Join(vu.path, name.Name()))
+			if err != nil {
+				return err
+			}
+			vu.users[user.email] = user
+		}
+	}
+	return nil
+}
+
+func (vusers *VaultUsers) LookupByEmail(email string) *VaultUser {
+	return vusers.users[email]
+}
+
 type VaultUser struct {
 	path               string
 	email              string
@@ -52,6 +97,10 @@ func (vu *VaultUser) publicKeyFile() string {
 	return path.Join(vu.path, "key")
 }
 
+func (vu *VaultUser) GetEncryptedMasterKey() string {
+	return vu.encryptedMasterKey
+}
+
 func (vu *VaultUser) SetEncryptedMasterKey(masterPassphrase []byte) error {
 	cipherText, err := vu.publicKey.EncryptBytes(masterPassphrase)
 	if err != nil {
@@ -81,41 +130,27 @@ func NewVaultUser(usersPath string, email string, publicKey string) (*VaultUser,
 }
 
 func ReadVaultUser(pathToUser string) (*VaultUser, error) {
-	//email := path.Base(pathToUser)
-	// TODO:
-	return nil, nil
-}
+	var user VaultUser
+	user.path = pathToUser
+	user.email = path.Base(pathToUser)
 
-func NewVaultUsers(parentPath string) *VaultUsers {
-	vaultUsersFolder := path.Join(parentPath, "users")
-	result := VaultUsers{path: vaultUsersFolder, users: make(map[string]*VaultUser, 0)}
-	return &result
-}
+	bytes, err := ioutil.ReadFile(user.publicKeyFile())
 
-// add a new vault user
-func (vu *VaultUsers) AddUser(email string, publicKeyString string, masterPassphrase []byte) error {
-	user, err := NewVaultUser(vu.path, email, publicKeyString)
 	if err != nil {
-		return err
+		debug("unable to parse public key %s", err)
+		return nil, err
 	}
 
-	if err := user.SetEncryptedMasterKey(masterPassphrase); err != nil {
-		return err
+	user.publicKeyString = string(bytes)
+	user.publicKey, _, _, _, err = sshcrypt.ParseAuthorizedKey([]byte(user.publicKeyString))
+
+	keyBytes, err := ioutil.ReadFile(user.encryptedMasterFile())
+
+	if err != nil {
+		debug("unable to parse master key %s", err)
+		return nil, err
 	}
 
-	if err := user.Save(); err != nil {
-		return err
-	}
-	vu.users[email] = user
-	return nil
-}
-
-func (vu *VaultUsers) Initialize() error {
-	if !util.DirectoryExists(vu.path) {
-		os.MkdirAll(vu.path, 0700)
-		ioutil.WriteFile(path.Join(vu.path, ".placeholder"), nil, 0700)
-	} else {
-		// TODO: read users
-	}
-	return nil
+	user.encryptedMasterKey = string(keyBytes)
+	return &user, nil
 }
