@@ -28,13 +28,13 @@ type Vault struct {
 	RemoteUpstream string
 	Path           string           `toml:"-"`
 	Entries        map[string]Entry `toml:"-"`
-	users          *VaultUsers      `toml:"-"`
-	git            *Git             `toml:"-"`
-	username       string           `toml:"-"`
-	email          string           `toml:"-"`
+
+	users       *VaultUsers  `toml:"-"`
+	credentials *Credentials `toml:"-"`
+	git         *Git         `toml:"-"`
 }
 
-func ReadAllVaults(vaultPath string) (map[string]*Vault, error) {
+func ReadAllVaults(vaultPath string, creds *Credentials) (map[string]*Vault, error) {
 	vaults := make(map[string]*Vault, 0)
 
 	files, err := ioutil.ReadDir(vaultPath)
@@ -44,7 +44,7 @@ func ReadAllVaults(vaultPath string) (map[string]*Vault, error) {
 	}
 
 	for _, name := range files {
-		vault, err := ReadVault(vaultPath, name.Name())
+		vault, err := ReadVault(vaultPath, name.Name(), creds)
 		if err != nil {
 			return nil, err
 		}
@@ -57,7 +57,7 @@ func ReadAllVaults(vaultPath string) (map[string]*Vault, error) {
 	return vaults, nil
 }
 
-func ReadVault(vaultPath string, name string) (*Vault, error) {
+func ReadVault(vaultPath string, name string, creds *Credentials) (*Vault, error) {
 	dst := path.Join(vaultPath, name)
 	configPath := filepath.Join(dst, "config.toml")
 
@@ -70,7 +70,8 @@ func ReadVault(vaultPath string, name string) (*Vault, error) {
 
 	vault.Path = dst // in case it was moved
 	vault.users = NewVaultUsers(dst)
-	vault.git = NewGit(dst, vault.username, vault.email)
+	vault.credentials = creds
+	vault.git = NewGit(dst, creds.Name, creds.Email)
 	vault.Initialize()
 	return &vault, nil
 }
@@ -78,15 +79,14 @@ func ReadVault(vaultPath string, name string) (*Vault, error) {
 //
 // Create a new vault.
 //
-func NewVault(vaultPath string, name string, username string, email string) (*Vault, error) {
+func NewVault(vaultPath string, name string, creds *Credentials) (*Vault, error) {
 	dst := path.Join(vaultPath, name)
 
 	result := Vault{Name: name,
-		Path:     dst,
-		users:    NewVaultUsers(dst),
-		email:    email,
-		username: username,
-		git:      NewGit(dst, username, email),
+		Path:        dst,
+		users:       NewVaultUsers(dst),
+		credentials: creds,
+		git:         NewGit(dst, creds.Name, creds.Email),
 	}
 
 	if err := result.Initialize(); err != nil {
@@ -174,11 +174,11 @@ func (v *Vault) Save(commitMsg string) error {
 }
 
 // seed the repository
-func (v *Vault) Seed(creds *SshKeyRing) error {
+func (v *Vault) Seed() error {
 	masterPassphrase, err := v.generateKey()
 	if err != nil {
 		return err
 	}
 
-	return v.users.AddUser(v.email, creds.PublicKeyString(), masterPassphrase)
+	return v.users.AddUser(v.credentials.Email, v.credentials.GetKeys().PublicKeyString(), masterPassphrase)
 }

@@ -43,7 +43,16 @@ func ChooseSshKeyRing() *passward.SshKeyRing {
 	return nil
 }
 
-func chooseAuthMethod(cfg *passward.Passward) {
+func setupCredentials() (*passward.Credentials, error) {
+
+	email := prompt.StringRequired("Please enter your email address")
+	name := prompt.String("Please enter your name.  We'll use your email address if this is blank")
+
+	if name == "" {
+		name = email
+	}
+
+	creds := passward.Credentials{Email: email, Name: name}
 
 	authMethods := []string{
 		"Import SSH keys - Use your ssh keys to encrypt your password vaults.",
@@ -54,13 +63,16 @@ func chooseAuthMethod(cfg *passward.Passward) {
 	chosen := prompt.Choose("Select your authentication method", authMethods)
 
 	if chosen == 0 {
-		setupSshAuth(cfg)
+		setupSshAuth(&creds)
+		return &creds, nil
 	} else {
 		log.Fatal("Sorry, this is not yet supported!")
 	}
+	return nil, nil
+
 }
 
-func setupSshAuth(cfg *passward.Passward) {
+func setupSshAuth(creds *passward.Credentials) {
 	sshKeys := ChooseSshKeyRing()
 
 	fmt.Println()
@@ -95,10 +107,10 @@ func setupSshAuth(cfg *passward.Passward) {
 	if err != nil {
 		log.Fatal("Unable to parse public key:", err)
 	}
-	fmt.Println("Great! We've loaded the keys and verified everything is great.")
+	fmt.Println("Great! We've loaded the keys and verified they've imported correctly.")
 
-	cfg.PrivateKey = sshKeys.PrivateKeyPath
-	cfg.PublicKey = sshKeys.PublicKeyPath
+	creds.PrivateKeyPath = sshKeys.PrivateKeyPath
+	creds.PublicKeyPath = sshKeys.PublicKeyPath
 }
 
 //
@@ -118,16 +130,21 @@ func Setup() {
 
 	fmt.Println("")
 
-	email := prompt.StringRequired("Please enter your email. Your email address is also your passward username")
+	creds, err := setupCredentials()
 
-	cfg, err := passward.NewPassward(email, passwardPath)
+	if err != nil {
+		fmt.Println("Unable to setup credentials.  Please re-run `passward setup`.", err)
+		os.Exit(1)
+	}
+
+	cfg, err := passward.NewPassward(passwardPath)
 
 	if err != nil {
 		fmt.Println("Unable to save passward config. You can try to re-run `passward setup`.", err)
 		os.Exit(1)
 	}
 
-	chooseAuthMethod(cfg)
+	cfg.SetCredentials(creds)
 
 	err = cfg.Save()
 
@@ -135,7 +152,5 @@ func Setup() {
 		log.Fatal("Unable to save passward config. You can try to re-run `passward setup`.", err)
 	}
 
-	//prompt.Confirm("We'll be installing .passward at %s, ? ", passwardPath)
-	//	installation := passward.NewPassward()
-
+	fmt.Println("Setup is complete!")
 }

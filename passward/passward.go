@@ -13,11 +13,8 @@ import (
 
 type Passward struct {
 	Vaults      map[string]*Vault
-	Email       string
 	Path        string `toml:"-"`
-	PrivateKey  string
-	PublicKey   string
-	credentials *SshKeyRing `toml:"-"`
+	Credentials *Credentials
 }
 
 //
@@ -34,17 +31,26 @@ func (pw *Passward) GetVault(name string) *Vault {
 	return pw.Vaults[name]
 }
 
+func (pw *Passward) SetCredentials(creds *Credentials) {
+	pw.Credentials = creds
+}
+
+func (pw *Passward) GetCredentials() *Credentials {
+	if pw.Credentials == nil {
+		panic("credentials not set")
+	}
+	return pw.Credentials
+}
+
 //
 // Unlock a passward by supplying credentials
 //
 func (pw *Passward) Unlock(passphrase string) error {
-	var err error
-	if pw.credentials != nil {
-		debug("already unlocked")
+	if pw.Credentials == nil {
+		panic("no credentials set!")
 		return nil
 	}
-	pw.credentials, err = NewSshKeyRing(pw.PublicKey, pw.PrivateKey, passphrase)
-	return err
+	return pw.Credentials.Unlock(passphrase)
 }
 
 //
@@ -56,11 +62,13 @@ func (pw *Passward) AddVault(name string) error {
 		return errors.New("Vault " + name + " already exists!")
 	}
 
-	if vault, err := NewVault(pw.vaultPath(), name, pw.Email, pw.Email); err != nil {
+	creds := pw.GetCredentials()
+
+	if vault, err := NewVault(pw.vaultPath(), name, creds); err != nil {
 		return err
 	} else {
 
-		if pw.credentials == nil {
+		if !creds.IsUnlocked() {
 			return errors.New("Credentials must be unlocked.")
 		}
 
@@ -68,7 +76,7 @@ func (pw *Passward) AddVault(name string) error {
 			return err
 		}
 
-		if err = vault.Seed(pw.credentials); err != nil {
+		if err = vault.Seed(); err != nil {
 			return err
 		}
 
@@ -103,10 +111,7 @@ func DetectPasswardPath() string {
 	return filepath.Join(home, ".passward")
 }
 
-//
-//
-//
-func NewPassward(email string, directory string) (*Passward, error) {
+func NewPassward(directory string) (*Passward, error) {
 	var conf Passward
 	if directory == "" {
 		directory = DetectPasswardPath()
@@ -124,7 +129,6 @@ func NewPassward(email string, directory string) (*Passward, error) {
 
 	conf.Vaults = make(map[string]*Vault, 0)
 	conf.Path = directory
-	conf.Email = email
 
 	os.MkdirAll(conf.vaultPath(), 0700)
 
@@ -149,7 +153,7 @@ func ReadPassward(directory string) (*Passward, error) {
 		return nil, err
 	}
 	pw.Path = directory // in case it was moved
-	pw.Vaults, err = ReadAllVaults(pw.vaultPath())
+	pw.Vaults, err = ReadAllVaults(pw.vaultPath(), pw.GetCredentials())
 	if err != nil {
 		return nil, err
 	}
