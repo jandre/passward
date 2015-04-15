@@ -33,6 +33,10 @@ type Vault struct {
 	git            *Git             `toml:"-"`
 }
 
+func (v *Vault) Users() map[string]*VaultUser {
+	return v.users.users
+}
+
 func (v *Vault) unlockMasterPassphrase() ([]byte, error) {
 
 	// keys := v.credentials.GetKeys()

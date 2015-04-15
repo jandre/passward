@@ -16,12 +16,13 @@ var (
 	setup = app.Command("setup", "Setup passward environment.")
 
 	// vault new
-	vault        = app.Command("vault", "Create and manage vaults.")
-	vaultNew     = vault.Command("new", "Create a new vault.")
-	vaultNewName = vaultNew.Arg("name", "Name of the vault to create").Required().String()
+	vault         = app.Command("vault", "Create and manage vaults.")
+	vaultNew      = vault.Command("new", "Create a new vault.")
+	vaultNewName  = vaultNew.Arg("name", "Name of the vault to create").Required().String()
+	vaultShow     = vault.Command("show", "Show vault.")
+	vaultShowName = vaultShow.Arg("name", "Name of the vault to show").Required().String()
+	vaultList     = vault.Command("list", "List all vaults.")
 
-	vaultUse  = vault.Command("use", "Use this as the current default vault.")
-	vaultList = vault.Command("list", "List all vaults.")
 	vaultPull = vault.Command("clone", "Clone a remote vault.")
 	vaultSync = vault.Command("sync", "Sync local vault with a remote vault.")
 )
@@ -40,6 +41,9 @@ func Run() {
 
 	case vaultNew.FullCommand():
 		commands.VaultNew(*vaultNewName)
+
+	case vaultShow.FullCommand():
+		commands.VaultShow(*vaultShowName)
 
 	case vaultList.FullCommand():
 		commands.VaultList()

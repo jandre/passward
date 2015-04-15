@@ -47,13 +47,17 @@ func (vu *VaultUsers) Initialize() error {
 		os.MkdirAll(vu.path, 0700)
 		ioutil.WriteFile(path.Join(vu.path, ".placeholder"), nil, 0700)
 	} else {
+
 		files, _ := ioutil.ReadDir(vu.path)
 		for _, name := range files {
-			user, err := ReadVaultUser(path.Join(vu.path, name.Name()))
-			if err != nil {
-				return err
+			if name.Name() != ".placeholder" {
+				user, err := ReadVaultUser(path.Join(vu.path, name.Name()))
+				if err != nil {
+					return err
+				}
+				vu.users[user.email] = user
 			}
-			vu.users[user.email] = user
+
 		}
 	}
 	return nil
@@ -69,6 +73,13 @@ type VaultUser struct {
 	publicKeyString    string
 	encryptedMasterKey string
 	publicKey          sshcrypt.PublicKey
+}
+
+func (vu *VaultUser) Email() string {
+	return vu.email
+}
+func (vu *VaultUser) PublicKey() string {
+	return vu.publicKeyString
 }
 
 func (vu *VaultUser) Save() error {
