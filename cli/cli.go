@@ -31,6 +31,10 @@ var (
 	addSecretUsername = addSecret.Flag("user", "Username").Required().String()
 	addSecretPassword = addSecret.Flag("password", "Password").String()
 
+	revealSecret          = app.Command("reveal-secret", "Reveal a secret.")
+	revealSecretSite      = revealSecret.Arg("site", "Name of site to reveal.").Required().String()
+	revealSecretVaultName = revealSecret.Flag("vault", "Name of the vault.").String()
+
 	vaultPull = vault.Command("clone", "Clone a remote vault.")
 	vaultSync = vault.Command("sync", "Sync local vault with a remote vault.")
 )
@@ -46,6 +50,9 @@ func Run() {
 	case vault.FullCommand():
 		println("Subcommand for `vault` is required.")
 		app.CommandUsage(os.Stderr, vault.FullCommand())
+
+	case revealSecret.FullCommand():
+		commands.VaultSecretReveal(*revealSecretVaultName, *revealSecretSite)
 
 	case vaultNew.FullCommand():
 		commands.VaultNew(*vaultNewName)

@@ -1,6 +1,7 @@
 package passward
 
 import (
+	"errors"
 	"io/ioutil"
 	"os"
 	"path"
@@ -58,6 +59,26 @@ func (e *Entry) Set(key string, val string, encryptionKey []byte) error {
 
 	e.encryptedValues[key] = encryptedVal
 	return nil
+}
+
+func (e *Entry) RevealAll(encryptionKey []byte) (map[string]string, error) {
+	result := make(map[string]string, 0)
+	for k, _ := range e.encryptedValues {
+		val, err := e.Reveal(k, encryptionKey)
+		if err != nil {
+			return nil, err
+		}
+		result[k] = val
+	}
+	return result, nil
+}
+
+func (e *Entry) Reveal(key string, encryptionKey []byte) (string, error) {
+	encryptedVal := e.encryptedValues[key]
+	if encryptedVal == "" {
+		return "", errors.New("No val found: " + e.Name() + " for: " + key)
+	}
+	return DecryptBase64String(string(encryptionKey), encryptedVal)
 }
 
 func (e *Entry) Save() error {
@@ -127,6 +148,10 @@ func (ve *VaultEntries) Add(name string, key string, val string, encryptionKey [
 	}
 
 	return ve.entries[name].Set(key, val, encryptionKey)
+}
+
+func (ve *VaultEntries) Get(name string) *Entry {
+	return ve.entries[name]
 }
 
 func (ve *VaultEntries) Save() error {

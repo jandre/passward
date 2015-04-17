@@ -50,6 +50,20 @@ func (v *Vault) unlockMasterKey() ([]byte, error) {
 	return user.UnlockMasterKey(keys)
 }
 
+func (v *Vault) RevealEntry(name string) (secrets map[string]string, err error) {
+	key, err := v.unlockMasterKey()
+	if err != nil {
+		return nil, err
+	}
+
+	entry := v.entries.Get(name)
+	if entry == nil {
+		return nil, errors.New("No entry found:" + name)
+	}
+
+	return entry.RevealAll(key)
+}
+
 func (v *Vault) AddEntry(name string, user string, passphrase string, desc string) error {
 	key, err := v.unlockMasterKey()
 	if err != nil {
