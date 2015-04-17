@@ -37,6 +37,13 @@ func VaultShow(name string) {
 	fmt.Printf("-- Found %d users\n", len(users))
 
 	for _, user := range users {
-		fmt.Println("\tUser:", user.Email())
+		fmt.Printf("\tUser: %s\n", user.Email())
+	}
+
+	entries := vault.Entries()
+	fmt.Printf("-- Found %d entries\n", len(entries))
+
+	for _, user := range entries {
+		fmt.Printf("\tEntries: %s\n", user.Name())
 	}
 }

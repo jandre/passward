@@ -29,6 +29,10 @@ func (v *Vault) Users() map[string]*VaultUser {
 	return v.users.users
 }
 
+func (v *Vault) Entries() map[string]*Entry {
+	return v.entries.entries
+}
+
 func (v *Vault) unlockMasterKey() ([]byte, error) {
 
 	keys := v.credentials.GetKeys()

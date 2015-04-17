@@ -24,6 +24,31 @@ func NewEntry(parentDir, name string) *Entry {
 	return &entry
 }
 
+func ReadEntry(parentDir, name string) (*Entry, error) {
+	entry := NewEntry(parentDir, name)
+	files, err := ioutil.ReadDir(entry.path)
+
+	if err != nil {
+		return nil, err
+	}
+
+	for _, file := range files {
+		filename := file.Name()
+		bytes, err := ioutil.ReadFile(path.Join(entry.path, filename))
+		if err != nil {
+			return nil, err
+		}
+
+		entry.encryptedValues[filename] = string(bytes)
+	}
+
+	return entry, nil
+}
+
+func (e *Entry) Name() string {
+	return e.name
+}
+
 func (e *Entry) Set(key string, val string, encryptionKey []byte) error {
 	cryptKey := string(encryptionKey)
 	encryptedVal, err := EncryptAndBase64String(cryptKey, val)
@@ -76,7 +101,22 @@ func (ve *VaultEntries) Initialize() error {
 		}
 	}
 
-	// TODO: load them
+	files, err := ioutil.ReadDir(ve.path)
+	if err != nil {
+		return err
+	}
+	for _, file := range files {
+		if file.Name() != ".placeholder" {
+			entry, err := ReadEntry(ve.Path(), file.Name())
+
+			if err != nil {
+				debug("unable to load entry", err)
+				return err
+			}
+
+			ve.entries[entry.Name()] = entry
+		}
+	}
 
 	return nil
 }
