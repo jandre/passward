@@ -9,6 +9,7 @@ import (
 )
 
 func VaultSecretAdd(name string, site string, username string, password string) {
+	var vault *passward.Vault
 
 	passwardPath := passward.DetectPasswardPath()
 
@@ -18,10 +19,18 @@ func VaultSecretAdd(name string, site string, username string, password string) 
 		log.Fatal("There was a problem loading the configuration. Did you run `passward setup?`", err)
 	}
 
-	vault := pw.GetVault(name)
+	if name != "" {
+		vault = pw.GetVault(name)
 
-	if vault == nil {
-		log.Fatal("Vault not found: " + name)
+		if vault == nil {
+			log.Fatal("Vault not found: " + name)
+		}
+	} else {
+		vault = pw.GetSelectedVault()
+		if vault == nil {
+			log.Fatal("No vault found; you need to run `passward vault use name` to select a vault or `passward vault new <name>` to create one.")
+		}
+
 	}
 
 	passphrase := prompt.PasswordMasked("Enter your passphrase to unlock your keys (empty for none)")

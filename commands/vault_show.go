@@ -8,6 +8,7 @@ import (
 )
 
 func VaultShow(name string) {
+	var vault *passward.Vault
 
 	passwardPath := passward.DetectPasswardPath()
 
@@ -17,18 +18,22 @@ func VaultShow(name string) {
 		log.Fatal("There was a problem loading the configuration. Did you run `passward setup?`", err)
 	}
 
-	// passphrase := prompt.PasswordMasked("Enter your passphrase to unlock your keys (empty for none)")
+	if name != "" {
+		vault = pw.GetVault(name)
 
-	// if err := pw.Unlock(passphrase); err != nil {
-	// log.Fatal("Invalid passphrase.", err)
-	// }
+		if vault == nil {
+			log.Fatal("Vault not found: " + name)
+		}
+	} else {
+		vault = pw.GetSelectedVault()
+		if vault == nil {
+			log.Fatal("No vault found; you need to run `passward vault use name` to select a vault or `passward vault new <name>` to create one.")
+		}
 
-	vault := pw.GetVault(name)
-	if vault == nil {
-		log.Fatal("No vault found: ", name)
 	}
 
 	users := vault.Users()
+	fmt.Printf("Showing vault: %s\n", name)
 	fmt.Printf("-- Found %d users\n", len(users))
 
 	for _, user := range users {

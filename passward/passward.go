@@ -12,23 +12,39 @@ import (
 )
 
 type Passward struct {
-	Vaults      map[string]*Vault
-	Path        string `toml:"-"`
-	Credentials *Credentials
+	Path          string `toml:"-"`
+	Credentials   *Credentials
+	SelectedVault string
+	vaults        map[string]*Vault
+	selectedVault *Vault
+}
+
+func (pw *Passward) GetSelectedVault() *Vault {
+	return pw.selectedVault
+}
+
+func (pw *Passward) UseVault(name string) error {
+	vault := pw.vaults[name]
+	if vault == nil {
+		return errors.New("vault not found:" + name)
+	}
+	pw.SelectedVault = name
+	pw.selectedVault = vault
+	return nil
 }
 
 //
 // GetVaults vaults in ~/.passward/vaults
 //
 func (pw *Passward) GetVaults() map[string]*Vault {
-	return pw.Vaults
+	return pw.vaults
 }
 
 //
 // Get a vault with name = `name`
 //
 func (pw *Passward) GetVault(name string) *Vault {
-	return pw.Vaults[name]
+	return pw.vaults[name]
 }
 
 func (pw *Passward) SetCredentials(creds *Credentials) {
@@ -58,7 +74,7 @@ func (pw *Passward) Unlock(passphrase string) error {
 //
 func (pw *Passward) AddVault(name string) error {
 	// check to see if there is a vault with the name already
-	if pw.Vaults[name] != nil {
+	if pw.vaults[name] != nil {
 		return errors.New("Vault " + name + " already exists!")
 	}
 
@@ -83,7 +99,7 @@ func (pw *Passward) AddVault(name string) error {
 		if err = vault.Save("New vault created."); err != nil {
 			return err
 		}
-		pw.Vaults[name] = vault
+		pw.vaults[name] = vault
 	}
 
 	return nil
@@ -127,7 +143,7 @@ func NewPassward(directory string) (*Passward, error) {
 		return nil, errors.New("passward home already exists:" + directory)
 	}
 
-	conf.Vaults = make(map[string]*Vault, 0)
+	conf.vaults = make(map[string]*Vault, 0)
 	conf.Path = directory
 
 	os.MkdirAll(conf.vaultPath(), 0700)
@@ -153,9 +169,13 @@ func ReadPassward(directory string) (*Passward, error) {
 		return nil, err
 	}
 	pw.Path = directory // in case it was moved
-	pw.Vaults, err = ReadAllVaults(pw.vaultPath(), pw.GetCredentials())
+	pw.vaults, err = ReadAllVaults(pw.vaultPath(), pw.GetCredentials())
 	if err != nil {
 		return nil, err
+	}
+
+	if pw.SelectedVault != "" {
+		pw.UseVault(pw.SelectedVault)
 	}
 
 	return &pw, nil

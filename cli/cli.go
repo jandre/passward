@@ -20,11 +20,13 @@ var (
 	vaultNew      = vault.Command("new", "Create a new vault.")
 	vaultNewName  = vaultNew.Arg("name", "Name of the vault to create").Required().String()
 	vaultShow     = vault.Command("show", "Show vault.")
-	vaultShowName = vaultShow.Arg("name", "Name of the vault to show").Required().String()
+	vaultShowName = vaultShow.Arg("name", "Name of the vault to show").String()
 	vaultList     = vault.Command("list", "List all vaults.")
+	vaultUse      = vault.Command("use", "Select active vault.")
+	vaultUseName  = vaultUse.Arg("name", "Name of the vault to use").Required().String()
 
 	addSecret         = app.Command("add-secret", "Add a secret.")
-	addSecretName     = addSecret.Arg("vault", "Name of the vault add the secret to.").Required().String()
+	addSecretName     = addSecret.Flag("vault", "Name of the vault add the secret to.").String()
 	addSecretSite     = addSecret.Flag("site", "Name of the site.").Required().String()
 	addSecretUsername = addSecret.Flag("user", "Username").Required().String()
 	addSecretPassword = addSecret.Flag("password", "Password").String()
@@ -47,6 +49,9 @@ func Run() {
 
 	case vaultNew.FullCommand():
 		commands.VaultNew(*vaultNewName)
+
+	case vaultUse.FullCommand():
+		commands.VaultUse(*vaultUseName)
 
 	case vaultShow.FullCommand():
 		commands.VaultShow(*vaultShowName)
