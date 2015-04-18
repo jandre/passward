@@ -33,7 +33,7 @@ func VaultShow(name string) {
 	}
 
 	users := vault.Users()
-	fmt.Printf("Showing vault: %s\n", name)
+	fmt.Printf("Showing vault: %s\n", vault.Name)
 	fmt.Printf("-- Found %d users\n", len(users))
 
 	for _, user := range users {
