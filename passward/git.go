@@ -53,6 +53,22 @@ func transferProgressCallback(stats git2go.TransferProgress) git2go.ErrorCode {
 	return instance.PrintTransferProgress(stats)
 }
 
+func pushTransferProgressCallback(current uint32, total uint32, bytes uint) git2go.ErrorCode {
+	return instance.PrintPushTransferProgress(current, total, bytes)
+}
+
+func (git *Git) PrintPushTransferProgress(current uint32, total uint32, bytes uint) git2go.ErrorCode {
+
+	if total != 0 {
+		if git.progressBar != nil {
+			git.progressBar.Set(int(current))
+		} else {
+			git.progressBar = pb.StartNew(int(total))
+		}
+	}
+	return git2go.ErrorCode(0)
+}
+
 func (git *Git) PrintTransferProgress(stats git2go.TransferProgress) git2go.ErrorCode {
 	if git.progressBar != nil {
 		git.progressBar.Set(int(stats.ReceivedObjects))
@@ -111,9 +127,9 @@ func (git *Git) Push() error {
 
 	instance = git
 	cbs := &git2go.RemoteCallbacks{
-		CredentialsCallback:      credentialsCallback,
-		CertificateCheckCallback: certificateCheckCallback,
-		TransferProgressCallback: transferProgressCallback,
+		CredentialsCallback:          credentialsCallback,
+		CertificateCheckCallback:     certificateCheckCallback,
+		PushTransferProgressCallback: pushTransferProgressCallback,
 	}
 
 	defer func() {
