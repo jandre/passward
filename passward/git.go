@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"time"
 
+	pb "github.com/cheggaaa/pb"
 	git2go "github.com/libgit2/git2go"
 
 	"github.com/jandre/passward/util"
@@ -31,6 +32,10 @@ type Git struct {
 	path        string
 	credentials *Credentials
 	repo        *git2go.Repository
+	progressBar *pb.ProgressBar
+
+	// onTransferProgress func(git2go.TransferProgress) git2go.ErrorCode
+	// onTransferComplete func(git2go.TransferProgress) git2go.ErrorCode
 }
 
 var instance *Git
@@ -44,12 +49,40 @@ func certificateCheckCallback(cert *git2go.Certificate, valid bool, hostname str
 	return 0
 }
 
-func (git *Git) CloneRepository(url string) error {
+func transferProgressCallback(stats git2go.TransferProgress) git2go.ErrorCode {
+	return instance.PrintTransferProgress(stats)
+}
+
+func (git *Git) PrintTransferProgress(stats git2go.TransferProgress) git2go.ErrorCode {
+	if git.progressBar != nil {
+		git.progressBar.Set(int(stats.ReceivedObjects))
+		//	fmt.Printf("-- Received %d/%d Objects...\n", stats.ReceivedObjects, stats.TotalObjects)
+	} else {
+		git.progressBar = pb.StartNew(int(stats.TotalObjects))
+	}
+	return git2go.ErrorCode(0)
+}
+
+func (git *Git) PrintTransferCompletion(complete git2go.CompletionCallback) git2go.ErrorCode {
+	// fmt.Println("Transfer Complete!")
+	return git2go.ErrorCode(0)
+}
+
+func (git *Git) Clone(url string) error {
 	instance = git
 	opts := git2go.CloneOptions{}
+
+	defer func() {
+		if git.progressBar != nil {
+			git.progressBar.FinishPrint("Transfer complete!")
+		}
+		git.progressBar = nil
+	}()
+
 	opts.RemoteCallbacks = &git2go.RemoteCallbacks{
 		CredentialsCallback:      credentialsCallback,
 		CertificateCheckCallback: certificateCheckCallback,
+		TransferProgressCallback: transferProgressCallback,
 	}
 
 	repo, err := git2go.Clone(url, git.path, &opts)
@@ -80,7 +113,15 @@ func (git *Git) Push() error {
 	cbs := &git2go.RemoteCallbacks{
 		CredentialsCallback:      credentialsCallback,
 		CertificateCheckCallback: certificateCheckCallback,
+		TransferProgressCallback: transferProgressCallback,
 	}
+
+	defer func() {
+		if git.progressBar != nil {
+			git.progressBar.FinishPrint("Transfer complete!")
+		}
+		git.progressBar = nil
+	}()
 
 	remote.SetCallbacks(cbs)
 

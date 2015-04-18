@@ -86,7 +86,7 @@ func (pw *Passward) FetchVault(url string, name string) (*Vault, error) {
 
 	debug("cloning to ", tmpDir)
 
-	err := git.CloneRepository(url)
+	err := git.Clone(url)
 
 	if err != nil {
 		return nil, err
@@ -101,7 +101,7 @@ func (pw *Passward) FetchVault(url string, name string) (*Vault, error) {
 	if vault != nil {
 		pw.vaults[name] = vault
 	} else {
-		return nil, errors.New("No vault found:" + name)
+		return nil, errors.New("Unable to fetch, no vault found:" + name)
 	}
 
 	return vault, nil
