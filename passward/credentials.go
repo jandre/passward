@@ -1,5 +1,7 @@
 package passward
 
+import "io/ioutil"
+
 type Credentials struct {
 	keyring        *SshKeyRing `toml:"-"`
 	keyPassphrase  string      `toml:"-"`
@@ -7,6 +9,20 @@ type Credentials struct {
 	Email          string
 	PublicKeyPath  string
 	PrivateKeyPath string
+}
+
+func (creds *Credentials) PublicKeyString() string {
+
+	if creds.keyring != nil {
+		return creds.keyring.PublicKeyString()
+	} else {
+		bytes, err := ioutil.ReadFile(creds.PublicKeyPath)
+		if err != nil {
+			return ""
+		}
+		return string(bytes)
+	}
+
 }
 
 func (creds *Credentials) Passphrase() string {
