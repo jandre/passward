@@ -64,7 +64,6 @@ func (pw *Passward) GetCredentials() *Credentials {
 func (pw *Passward) Unlock(passphrase string) error {
 	if pw.Credentials == nil {
 		panic("no credentials set!")
-		return nil
 	}
 	return pw.Credentials.Unlock(passphrase)
 }
