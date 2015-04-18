@@ -25,11 +25,17 @@ var (
 	vaultUse      = vault.Command("use", "Select active vault.")
 	vaultUseName  = vaultUse.Arg("name", "Name of the vault to use").Required().String()
 
-	addSecret         = app.Command("add-secret", "Add a secret.")
-	addSecretName     = addSecret.Flag("vault", "Name of the vault add the secret to.").String()
-	addSecretSite     = addSecret.Flag("site", "Name of the site.").Required().String()
-	addSecretUsername = addSecret.Flag("user", "Username").Required().String()
-	addSecretPassword = addSecret.Flag("password", "Password").String()
+	vaultSetRemote     = vault.Command("set-remote", "Set remote url (git).")
+	vaultSetRemoteUrl  = vaultSetRemote.Arg("url", "Remote url").Required().String()
+	vaultSetRemoteName = vaultSetRemote.Flag("vault", "Name of the vault to set remote to").String()
+	// vaultList     = vault.Command("list", "List all vaults.")
+
+	addSecret            = app.Command("add-secret", "Add a secret.")
+	addSecretName        = addSecret.Flag("vault", "Name of the vault.").String()
+	addSecretSite        = addSecret.Flag("site", "The site is the container for the secrets.").Required().String()
+	addSecretUsername    = addSecret.Flag("user", "Username associated with the site.").Required().String()
+	addSecretPassword    = addSecret.Flag("passphrase", "Passphrase to store with the site.").Required().String()
+	addSecretDescription = addSecret.Flag("description", "Description to store with the site.").String()
 
 	revealSecret          = app.Command("reveal-secret", "Reveal a secret.")
 	revealSecretSite      = revealSecret.Arg("site", "Name of site to reveal.").Required().String()
@@ -60,6 +66,9 @@ func Run() {
 	case vaultUse.FullCommand():
 		commands.VaultUse(*vaultUseName)
 
+	case vaultSetRemote.FullCommand():
+		commands.VaultSetRemote(*vaultSetRemoteName, *vaultSetRemoteUrl)
+
 	case vaultShow.FullCommand():
 		commands.VaultShow(*vaultShowName)
 
@@ -67,7 +76,7 @@ func Run() {
 		commands.VaultList()
 
 	case addSecret.FullCommand():
-		commands.VaultSecretAdd(*addSecretName, *addSecretSite, *addSecretUsername, *addSecretPassword)
+		commands.VaultSecretAdd(*addSecretName, *addSecretSite, *addSecretUsername, *addSecretPassword, *addSecretDescription)
 
 	default:
 		app.Usage(os.Stderr)

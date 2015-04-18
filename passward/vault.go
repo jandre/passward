@@ -15,14 +15,13 @@ import (
 const KEYSIZE = 128
 
 type Vault struct {
-	Name           string
-	Description    string
-	RemoteUpstream string
-	Path           string        `toml:"-"`
-	entries        *VaultEntries `toml:"-"`
-	users          *VaultUsers   `toml:"-"`
-	credentials    *Credentials  `toml:"-"`
-	git            *Git          `toml:"-"`
+	Name        string
+	Description string
+	Path        string        `toml:"-"`
+	entries     *VaultEntries `toml:"-"`
+	users       *VaultUsers   `toml:"-"`
+	credentials *Credentials  `toml:"-"`
+	git         *Git          `toml:"-"`
 }
 
 func (v *Vault) Users() map[string]*VaultUser {
@@ -38,7 +37,7 @@ func (v *Vault) unlockMasterKey() ([]byte, error) {
 	keys := v.credentials.GetKeys()
 
 	if keys == nil {
-		return nil, errors.New("No keys found - did you call vault.Unlock()?")
+		return nil, errors.New("No keys found - did you call passward.Unlock()?")
 	}
 
 	user := v.users.LookupByEmail(v.credentials.Email)
@@ -115,7 +114,7 @@ func ReadVault(vaultPath string, name string, creds *Credentials) (*Vault, error
 	vault.Path = dst // in case it was moved
 	vault.users = NewVaultUsers(dst)
 	vault.credentials = creds
-	vault.git = NewGit(dst, creds.Name, creds.Email)
+	vault.git = NewGit(dst, creds)
 	vault.entries = NewVaultEntries(dst)
 	vault.Initialize()
 	return &vault, nil
@@ -132,7 +131,7 @@ func NewVault(vaultPath string, name string, creds *Credentials) (*Vault, error)
 		users:       NewVaultUsers(dst),
 		entries:     NewVaultEntries(dst),
 		credentials: creds,
-		git:         NewGit(dst, creds.Name, creds.Email),
+		git:         NewGit(dst, creds),
 	}
 
 	if err := result.Initialize(); err != nil {
@@ -215,6 +214,16 @@ func (v *Vault) generateKey() ([]byte, error) {
 
 func (v *Vault) Save(commitMsg string) error {
 	return v.git.CommitAllChanges(commitMsg)
+}
+
+func (v *Vault) SetRemote(remote string) error {
+	return v.git.SetRemote(remote)
+}
+
+func (v *Vault) Sync() error {
+	return v.git.Push()
+
+	// TODO: also pull
 }
 
 // seed the repository

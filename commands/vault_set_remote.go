@@ -1,9 +1,11 @@
 package commands
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/jandre/passward/passward"
+	"github.com/segmentio/go-prompt"
 )
 
 func VaultSetRemote(name string, url string) {
@@ -35,6 +37,11 @@ func VaultSetRemote(name string, url string) {
 		log.Fatal("url is required.")
 	}
 
+	passphrase := prompt.PasswordMasked("Enter your passphrase to unlock your keys (empty for none)")
+	if err := pw.Unlock(passphrase); err != nil {
+		log.Fatal("Invalid passphrase.", err)
+	}
+
 	err = vault.SetRemote(url)
 	if err != nil {
 		log.Fatal("Unable to set vault remote: ", err)
@@ -45,4 +52,5 @@ func VaultSetRemote(name string, url string) {
 		log.Fatal("Unable to set vault remote: ", err)
 	}
 
+	fmt.Printf("Remote for `%s` successfully set to: %s\n", vault.Name, url)
 }

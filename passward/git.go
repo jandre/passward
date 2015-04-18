@@ -4,33 +4,105 @@ import (
 	"errors"
 	"time"
 
+	git2go "github.com/libgit2/git2go"
+
 	"github.com/jandre/passward/util"
-	git2go "gopkg.in/libgit2/git2go.v22"
+	// git2go "gopkg.in/libgit2/git2go.v22"
 )
 
 //
 // Contains git helpers
 //
 type Git struct {
-	Name  string
-	Email string
-	Path  string
-	repo  *git2go.Repository
+	path        string
+	credentials *Credentials
+	repo        *git2go.Repository
 }
 
-func NewGit(path string, name string, email string) *Git {
-	return &Git{Path: path, Name: name, Email: email}
+var instance *Git
+
+func credentialsCallback(url string, username string, allowedTypes git2go.CredType) (git2go.ErrorCode, *git2go.Cred) {
+	return instance.getGitCredentials()
+}
+
+func certificateCheckCallback(cert *git2go.Certificate, valid bool, hostname string) git2go.ErrorCode {
+	// Made this one just return 0 during troubleshooting...
+	return 0
+}
+
+func NewGit(path string, credentials *Credentials) *Git {
+	return &Git{path: path, credentials: credentials}
+}
+
+func (git *Git) Push() error {
+
+	remote, err := git.repo.LookupRemote("origin")
+
+	if err != nil {
+		return err
+	}
+
+	if remote == nil {
+		return errors.New("No remote found, did you call `SetRemote`?")
+	}
+
+	instance = git
+	cbs := &git2go.RemoteCallbacks{
+		CredentialsCallback:      credentialsCallback,
+		CertificateCheckCallback: certificateCheckCallback,
+	}
+
+	remote.SetCallbacks(cbs)
+
+	return remote.Push([]string{"refs/heads/master"}, nil)
+
+	// TODO: handle pull and sync etc
+}
+
+func (git *Git) SetRemote(remote string) error {
+	gitRemote, err := git.repo.CreateRemote("origin", remote)
+
+	if err != nil {
+		return err
+	}
+
+	expected := []string{
+		"+refs/heads/*:refs/remotes/origin/*",
+	}
+
+	if err := gitRemote.SetFetchRefspecs(expected); err != nil {
+		return err
+	}
+
+	if err := gitRemote.Save(); err != nil {
+		return err
+	}
+
+	// branch, err := git.repo.LookupBranch("master", git2go.BranchLocal)
+
+	// if err != nil {
+	// return err
+	// }
+
+	// branch.
+
+	// if err := branch.SetUpstream("master"); err != nil {
+	// log.Println("XXXX", err)
+	// return err
+	// }
+
+	return nil
 }
 
 func (git *Git) Initialize() error {
 	var err error
 
-	if util.DirectoryExists(git.Path) {
-		if git.repo, err = git2go.OpenRepository(git.Path); err != nil {
+	if util.DirectoryExists(git.path) {
+		if git.repo, err = git2go.OpenRepository(git.path); err != nil {
 			return err
 		}
 	} else {
-		if git.repo, err = git2go.InitRepository(git.Path, false); err != nil {
+		if git.repo, err = git2go.InitRepository(git.path, false); err != nil {
 			return err
 		}
 	}
@@ -38,11 +110,17 @@ func (git *Git) Initialize() error {
 	return nil
 }
 
+func (git *Git) getGitCredentials() (git2go.ErrorCode, *git2go.Cred) {
+	err, cred := git2go.NewCredSshKey("git", git.credentials.PublicKeyPath,
+		git.credentials.PrivateKeyPath, git.credentials.Passphrase())
+	return git2go.ErrorCode(err), &cred
+}
+
 func (git *Git) makeSignature() *git2go.Signature {
 
 	return &git2go.Signature{
-		Name:  git.Name,
-		Email: git.Email,
+		Name:  git.credentials.Name,
+		Email: git.credentials.Email,
 		When:  time.Now(),
 	}
 }

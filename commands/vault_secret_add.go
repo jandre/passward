@@ -8,7 +8,7 @@ import (
 	"github.com/segmentio/go-prompt"
 )
 
-func VaultSecretAdd(name string, site string, username string, password string) {
+func VaultSecretAdd(name string, site string, username string, password string, description string) {
 	var vault *passward.Vault
 
 	passwardPath := passward.DetectPasswardPath()
@@ -38,7 +38,7 @@ func VaultSecretAdd(name string, site string, username string, password string) 
 		log.Fatal("Invalid passphrase.", err)
 	}
 
-	if err := vault.AddEntry(site, username, password, ""); err != nil {
+	if err := vault.AddEntry(site, username, password, description); err != nil {
 		log.Fatal("Unable to add entry for: "+site, err)
 	}
 
