@@ -2,6 +2,7 @@ package passward
 
 import (
 	"errors"
+	"regexp"
 	"time"
 
 	git2go "github.com/libgit2/git2go"
@@ -9,6 +10,19 @@ import (
 	"github.com/jandre/passward/util"
 	// git2go "gopkg.in/libgit2/git2go.v22"
 )
+
+func detectGitName(url string) string {
+	// find last instance of *.git
+	re, err := regexp.Compile(".+/(.*).git")
+	if err != nil {
+		panic(err)
+	}
+	matches := re.FindStringSubmatch(url)
+	if matches != nil && len(matches) == 2 {
+		return matches[1]
+	}
+	return ""
+}
 
 //
 // Contains git helpers
@@ -28,6 +42,22 @@ func credentialsCallback(url string, username string, allowedTypes git2go.CredTy
 func certificateCheckCallback(cert *git2go.Certificate, valid bool, hostname string) git2go.ErrorCode {
 	// Made this one just return 0 during troubleshooting...
 	return 0
+}
+
+func (git *Git) CloneRepository(url string) error {
+	instance = git
+	opts := git2go.CloneOptions{}
+	opts.RemoteCallbacks = &git2go.RemoteCallbacks{
+		CredentialsCallback:      credentialsCallback,
+		CertificateCheckCallback: certificateCheckCallback,
+	}
+
+	repo, err := git2go.Clone(url, git.path, &opts)
+	if err != nil {
+		return err
+	}
+	git.repo = repo
+	return nil
 }
 
 func NewGit(path string, credentials *Credentials) *Git {

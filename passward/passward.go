@@ -69,6 +69,44 @@ func (pw *Passward) Unlock(passphrase string) error {
 	return pw.Credentials.Unlock(passphrase)
 }
 
+func (pw *Passward) FetchVault(url string, name string) (*Vault, error) {
+	if name == "" {
+		name = detectGitName(url)
+	}
+
+	if pw.vaults[name] != nil {
+		return nil, errors.New("Vault " + name + " already exists!")
+	}
+
+	tmpDir := path.Join(pw.Path, "vaults", name)
+
+	creds := pw.GetCredentials()
+	// make a tmpdir
+	git := NewGit(tmpDir, creds)
+
+	debug("cloning to ", tmpDir)
+
+	err := git.CloneRepository(url)
+
+	if err != nil {
+		return nil, err
+	}
+
+	vault, err := ReadVault(pw.vaultPath(), name, pw.GetCredentials())
+
+	if err != nil {
+		return nil, err
+	}
+
+	if vault != nil {
+		pw.vaults[name] = vault
+	} else {
+		return nil, errors.New("No vault found:" + name)
+	}
+
+	return vault, nil
+}
+
 //
 // Add a vault to the ~/.passward/vaults
 //

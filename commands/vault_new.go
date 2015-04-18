@@ -28,6 +28,12 @@ func VaultNew(name string) {
 		log.Fatal("Error creating vault: ", err)
 	}
 
-	fmt.Println("Successfully created new vault: ", name)
+	err = pw.UseVault(name)
 
+	if err != nil {
+		fmt.Println("Vault vualt created successfully, but unable to switch to vault.")
+	}
+
+	fmt.Println("Successfully created new vault: ", name)
+	fmt.Printf("We have automatically switched to this as the active vault.  You can select another vault using `passward vault use <name>`.")
 }

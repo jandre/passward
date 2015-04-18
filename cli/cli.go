@@ -33,7 +33,7 @@ var (
 	addSecret            = app.Command("add-secret", "Add a secret.")
 	addSecretName        = addSecret.Flag("vault", "Name of the vault.").String()
 	addSecretSite        = addSecret.Flag("site", "The site is the container for the secrets.").Required().String()
-	addSecretUsername    = addSecret.Flag("user", "Username associated with the site.").Required().String()
+	addSecretUsername    = addSecret.Flag("username", "Username associated with the site.").Required().String()
 	addSecretPassword    = addSecret.Flag("passphrase", "Passphrase to store with the site.").Required().String()
 	addSecretDescription = addSecret.Flag("description", "Description to store with the site.").String()
 
@@ -42,9 +42,11 @@ var (
 	revealSecretVaultName = revealSecret.Flag("vault", "Name of the vault.").String()
 
 	vaultSync     = vault.Command("sync", "Sync local vault with a remote vault.")
-	vaultSyncName = vaultSync.Flag("vault", "Name of the vault to sync.").String()
+	vaultSyncName = vaultSync.Flag("vault", "(optional) Name of the vault to sync.").String()
 
-	vaultPull = vault.Command("clone", "Clone a remote vault.")
+	vaultFetch     = vault.Command("fetch", "Fetch a remote vault.")
+	vaultFetchUrl  = vaultFetch.Arg("url", "Remote url, e.g. git@github.com/passward/test.git").Required().String()
+	vaultFetchName = vaultFetch.Flag("name", "(optional) Name of vault to use.").String()
 )
 
 func Run() {
@@ -70,6 +72,9 @@ func Run() {
 
 	case vaultSetRemote.FullCommand():
 		commands.VaultSetRemote(*vaultSetRemoteName, *vaultSetRemoteUrl)
+
+	case vaultFetch.FullCommand():
+		commands.VaultFetch(*vaultFetchUrl, *vaultFetchName)
 
 	case vaultSync.FullCommand():
 		commands.VaultSync(*vaultSyncName)
