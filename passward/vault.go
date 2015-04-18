@@ -17,11 +17,15 @@ const KEYSIZE = 128
 type Vault struct {
 	Name        string
 	Description string
-	Path        string        `toml:"-"`
-	entries     *VaultEntries `toml:"-"`
-	users       *VaultUsers   `toml:"-"`
-	credentials *Credentials  `toml:"-"`
-	git         *Git          `toml:"-"`
+	Path        string `toml:"-"`
+
+	// secret entries
+	entries *VaultEntries `toml:"-"`
+
+	// users in vault
+	users       *VaultUsers  `toml:"-"`
+	credentials *Credentials `toml:"-"`
+	git         *Git         `toml:"-"`
 }
 
 func (v *Vault) Users() map[string]*VaultUser {
