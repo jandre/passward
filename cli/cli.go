@@ -27,7 +27,7 @@ var (
 
 	vaultSetRemote     = vault.Command("set-remote", "Set remote url (git).")
 	vaultSetRemoteUrl  = vaultSetRemote.Arg("url", "Remote url").Required().String()
-	vaultSetRemoteName = vaultSetRemote.Flag("vault", "Name of the vault to set remote to").String()
+	vaultSetRemoteName = vaultSetRemote.Flag("vault", "Name of the vault to set remote for.").String()
 	// vaultList     = vault.Command("list", "List all vaults.")
 
 	addSecret            = app.Command("add-secret", "Add a secret.")
@@ -41,8 +41,10 @@ var (
 	revealSecretSite      = revealSecret.Arg("site", "Name of site to reveal.").Required().String()
 	revealSecretVaultName = revealSecret.Flag("vault", "Name of the vault.").String()
 
+	vaultSync     = vault.Command("sync", "Sync local vault with a remote vault.")
+	vaultSyncName = vaultSync.Flag("vault", "Name of the vault to sync.").String()
+
 	vaultPull = vault.Command("clone", "Clone a remote vault.")
-	vaultSync = vault.Command("sync", "Sync local vault with a remote vault.")
 )
 
 func Run() {
@@ -68,6 +70,9 @@ func Run() {
 
 	case vaultSetRemote.FullCommand():
 		commands.VaultSetRemote(*vaultSetRemoteName, *vaultSetRemoteUrl)
+
+	case vaultSync.FullCommand():
+		commands.VaultSync(*vaultSyncName)
 
 	case vaultShow.FullCommand():
 		commands.VaultShow(*vaultShowName)
