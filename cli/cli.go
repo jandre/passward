@@ -30,6 +30,11 @@ var (
 	vaultAddUserEmail     = vaultAddUser.Arg("email", "Email address, e.g. bob@foo.com").Required().String()
 	vaultAddUserVaultName = vaultAddUser.Flag("vault", "(optional) name of vault to use").String()
 
+	vaultRemove              = vault.Command("remove", "")
+	vaultRemoveUser          = vaultRemove.Command("user", "Remove a user from the vault")
+	vaultRemoveUserEmail     = vaultRemoveUser.Arg("email", "Email address, e.g. bob@foo.com, of the user to remove").Required().String()
+	vaultRemoveUserVaultName = vaultRemoveUser.Flag("vault", "(optional) name of vault to use").String()
+
 	vaultSetRemote     = vault.Command("remote", "Set or view remote url (git).")
 	vaultSetRemoteUrl  = vaultSetRemote.Arg("url", "Remote url").Required().String()
 	vaultSetRemoteName = vaultSetRemote.Flag("vault", "Name of the vault to set remote for.").String()

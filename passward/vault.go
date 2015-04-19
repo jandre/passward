@@ -28,6 +28,15 @@ type Vault struct {
 	git         *Git         `toml:"-"`
 }
 
+func (v *Vault) RemoveUser(email string) error {
+	panic("not implemented")
+	return nil
+}
+
+func (v *Vault) GetUserByEmail(email string) *VaultUser {
+	return v.users.LookupByEmail(email)
+}
+
 //
 // HasRemote returns true if the vault has a remote set.
 //

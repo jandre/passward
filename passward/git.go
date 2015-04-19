@@ -57,6 +57,8 @@ func pushTransferProgressCallback(current uint32, total uint32, bytes uint) git2
 //
 // HasRemote is true if the repository has a remote
 //
+// A remote can be set with `vault remote set <x>`
+//
 func (git *Git) HasRemote() bool {
 
 	if git.repo != nil {
@@ -237,6 +239,29 @@ func (git *Git) makeSignature() *git2go.Signature {
 	}
 }
 
+func (git *Git) findDeletedEntries() (paths []string, err error) {
+	paths = make([]string, 0)
+
+	if git.repo == nil {
+		return paths, errors.New("No repo - have you called Initialize()?")
+	}
+
+	idx, err := git.repo.Index()
+	if err != nil {
+		return paths, err
+	}
+
+	c := idx.EntryCount()
+	for i := uint(0); i < c; i++ {
+		entry, err := idx.EntryByIndex(i)
+		if err != nil && !util.PathExists(entry.Path) {
+			paths = append(paths, entry.Path)
+		}
+	}
+	return paths, nil
+
+}
+
 //
 // CommitAllChanges will commit all current changes in the
 // vault reopistory.  it is the equivalent of
@@ -259,6 +284,18 @@ func (g *Git) CommitAllChanges(msg string) error {
 
 	if err != nil {
 		return err
+	}
+
+	deletedFiles, err := g.findDeletedEntries()
+
+	if err != nil {
+		return err
+	}
+	if len(deletedFiles) > 0 {
+		debug("removing from index: %s", deletedFiles)
+		if err := idx.RemoveAll(deletedFiles, nil); err != nil {
+			return err
+		}
 	}
 
 	oid, err := idx.WriteTree()
