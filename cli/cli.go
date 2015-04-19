@@ -28,7 +28,7 @@ var (
 	vaultAdd              = vault.Command("add", "")
 	vaultAddUser          = vaultAdd.Command("user", "Add a user to the vault")
 	vaultAddUserEmail     = vaultAddUser.Arg("email", "Email address, e.g. bob@foo.com").Required().String()
-	vaultAddUserVaultName = vaultAddUser.Flag("vault", "(optional) name of vault to use").Required().String()
+	vaultAddUserVaultName = vaultAddUser.Flag("vault", "(optional) name of vault to use").String()
 
 	vaultSetRemote     = vault.Command("remote", "Set or view remote url (git).")
 	vaultSetRemoteUrl  = vaultSetRemote.Arg("url", "Remote url").Required().String()

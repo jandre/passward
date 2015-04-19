@@ -30,7 +30,7 @@ func VaultAddUser(name string, email string) {
 
 	_, err = vault.AddUser(email, publicKey)
 	if err != nil {
-		log.Fatal("Unable to set add user: ", err)
+		log.Fatal("Unable to add user: ", err)
 	}
 
 	fmt.Printf("User `%s` successfully saved to vault: %s.\n", email, vault.Name)

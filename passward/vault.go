@@ -36,8 +36,21 @@ func (v *Vault) HasRemote() bool {
 }
 
 func (v *Vault) AddUser(email string, publicKey string) (*VaultUser, error) {
-	// TODO
-	return nil, nil
+	masterKey, err := v.unlockMasterKey()
+	if err != nil {
+		debug("could not add user - vault is not unlocked")
+		return nil, err
+	}
+
+	if err := v.users.AddUser(email, publicKey, masterKey); err != nil {
+		return nil, err
+	}
+
+	user := v.users.LookupByEmail(email)
+
+	v.Save("Added user: " + email)
+
+	return user, nil
 }
 
 func (v *Vault) Users() map[string]*VaultUser {

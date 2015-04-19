@@ -2,6 +2,7 @@ package passward
 
 import (
 	"encoding/base64"
+	"errors"
 	"io/ioutil"
 	"os"
 	"path"
@@ -26,6 +27,10 @@ func NewVaultUsers(parentPath string) *VaultUsers {
 
 // add a new vault user
 func (vu *VaultUsers) AddUser(email string, publicKeyString string, masterPassphrase []byte) error {
+	if vu.users[email] != nil {
+		return errors.New("User already exists in vault:" + email)
+	}
+
 	user, err := NewVaultUser(vu.path, email, publicKeyString)
 	if err != nil {
 		return err
