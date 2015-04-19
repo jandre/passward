@@ -25,19 +25,24 @@ var (
 	vaultUse      = vault.Command("use", "Select active vault.")
 	vaultUseName  = vaultUse.Arg("name", "Name of the vault to use").Required().String()
 
-	vaultSetRemote     = vault.Command("set-remote", "Set remote url (git).")
+	vaultAdd              = vault.Command("add", "")
+	vaultAddUser          = vaultAdd.Command("user", "Add a user to the vault")
+	vaultAddUserEmail     = vaultAddUser.Arg("email", "Email address, e.g. bob@foo.com").Required().String()
+	vaultAddUserVaultName = vaultAddUser.Flag("vault", "(optional) name of vault to use").Required().String()
+
+	vaultSetRemote     = vault.Command("remote", "Set or view remote url (git).")
 	vaultSetRemoteUrl  = vaultSetRemote.Arg("url", "Remote url").Required().String()
 	vaultSetRemoteName = vaultSetRemote.Flag("vault", "Name of the vault to set remote for.").String()
 	// vaultList     = vault.Command("list", "List all vaults.")
 
-	addSecret            = app.Command("add-secret", "Add a secret.")
+	addSecret            = app.Command("store", "Store a secret.")
 	addSecretName        = addSecret.Flag("vault", "Name of the vault.").String()
 	addSecretSite        = addSecret.Flag("site", "The site is the container for the secrets.").Required().String()
 	addSecretUsername    = addSecret.Flag("username", "Username associated with the site.").Required().String()
 	addSecretPassword    = addSecret.Flag("passphrase", "Passphrase to store with the site.").Required().String()
 	addSecretDescription = addSecret.Flag("description", "Description to store with the site.").String()
 
-	revealSecret          = app.Command("reveal-secret", "Reveal a secret.")
+	revealSecret          = app.Command("reveal", "Reveal a secret.")
 	revealSecretSite      = revealSecret.Arg("site", "Name of site to reveal.").Required().String()
 	revealSecretVaultName = revealSecret.Flag("vault", "Name of the vault.").String()
 
@@ -63,6 +68,9 @@ func Run() {
 
 	case revealSecret.FullCommand():
 		commands.VaultSecretReveal(*revealSecretVaultName, *revealSecretSite)
+
+	case vaultAddUser.FullCommand():
+		commands.VaultAddUser(*vaultAddUserVaultName, *vaultAddUserEmail)
 
 	case vaultNew.FullCommand():
 		commands.VaultNew(*vaultNewName)

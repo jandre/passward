@@ -28,6 +28,11 @@ type Vault struct {
 	git         *Git         `toml:"-"`
 }
 
+func (v *Vault) AddUser(email string, publicKey string) (*VaultUser, error) {
+	// TODO
+	return nil, nil
+}
+
 func (v *Vault) Users() map[string]*VaultUser {
 	return v.users.users
 }

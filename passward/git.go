@@ -26,16 +26,13 @@ func detectGitName(url string) string {
 }
 
 //
-// Contains git helpers
+// Contains git helpers used by the vaults
 //
 type Git struct {
 	path        string
 	credentials *Credentials
 	repo        *git2go.Repository
 	progressBar *pb.ProgressBar
-
-	// onTransferProgress func(git2go.TransferProgress) git2go.ErrorCode
-	// onTransferComplete func(git2go.TransferProgress) git2go.ErrorCode
 }
 
 var instance *Git
@@ -55,6 +52,21 @@ func transferProgressCallback(stats git2go.TransferProgress) git2go.ErrorCode {
 
 func pushTransferProgressCallback(current uint32, total uint32, bytes uint) git2go.ErrorCode {
 	return instance.PrintPushTransferProgress(current, total, bytes)
+}
+
+//
+// HasRemote is true if the repository has a remote
+//
+func (git *Git) HasRemote() bool {
+
+	if git.repo != nil {
+		remote, err := git.repo.LookupRemote("origin")
+		if remote != nil && err == nil {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (git *Git) PrintPushTransferProgress(current uint32, total uint32, bytes uint) git2go.ErrorCode {
@@ -84,6 +96,9 @@ func (git *Git) PrintTransferCompletion(complete git2go.CompletionCallback) git2
 	return git2go.ErrorCode(0)
 }
 
+//
+// Clone will clone a remote vault.
+//
 func (git *Git) Clone(url string) error {
 	instance = git
 	opts := git2go.CloneOptions{}
@@ -109,19 +124,32 @@ func (git *Git) Clone(url string) error {
 	return nil
 }
 
+//
+// NewGit creates a new git.  the `path` is the path of
+// the repository; the credentials contain the ssh credentials
+// used to commit and push remote repositories.
+//
+// The same ssh key is used for encrypting/decrypting the keys.
+//
 func NewGit(path string, credentials *Credentials) *Git {
 	return &Git{path: path, credentials: credentials}
 }
 
+//
+// Push will sync the repository to the remote, much like `git push`.
+// It does not handle merge conflicts currently.
+//
 func (git *Git) Push() error {
 
 	remote, err := git.repo.LookupRemote("origin")
 
 	if err != nil {
+		debug("no remote repository found:", err)
 		return err
 	}
 
 	if remote == nil {
+		debug("no remote repository found")
 		return errors.New("No remote found, did you call `SetRemote`?")
 	}
 
@@ -146,6 +174,12 @@ func (git *Git) Push() error {
 	// TODO: handle pull and sync etc
 }
 
+//
+// SetRemote will set the remote url `remote`, e.g. git@github.com:jandre/work.git
+//
+// Currently it only supports ssh remotes, *not* passowrd or any other kind of
+// authentication.
+//
 func (git *Git) SetRemote(remote string) error {
 	gitRemote, err := git.repo.CreateRemote("origin", remote)
 
@@ -164,19 +198,6 @@ func (git *Git) SetRemote(remote string) error {
 	if err := gitRemote.Save(); err != nil {
 		return err
 	}
-
-	// branch, err := git.repo.LookupBranch("master", git2go.BranchLocal)
-
-	// if err != nil {
-	// return err
-	// }
-
-	// branch.
-
-	// if err := branch.SetUpstream("master"); err != nil {
-	// log.Println("XXXX", err)
-	// return err
-	// }
 
 	return nil
 }
