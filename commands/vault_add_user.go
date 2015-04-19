@@ -35,6 +35,7 @@ func VaultAddUser(name string, email string) {
 
 	fmt.Printf("User `%s` successfully saved to vault: %s.\n", email, vault.Name)
 	if vault.HasRemote() {
+		fmt.Println("")
 		fmt.Println("1. Sync your changes by running `passward vault sync`.")
 		fmt.Println("2. You will want to ensure that the ssh key has permission to the remote repository.")
 	}
