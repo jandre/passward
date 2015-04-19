@@ -202,6 +202,10 @@ func (git *Git) SetRemote(remote string) error {
 	return nil
 }
 
+//
+// Initialize the git repository structure by opening the repo if it
+// exists; otherwise creating it at the `git.path`.
+//
 func (git *Git) Initialize() error {
 	var err error
 
@@ -234,7 +238,9 @@ func (git *Git) makeSignature() *git2go.Signature {
 }
 
 //
-// equivalent of git add . ; git commit -a -m <msg>
+// CommitAllChanges will commit all current changes in the
+// vault reopistory.  it is the equivalent of
+// "git add . ; git commit -a -m <msg>"
 //
 func (g *Git) CommitAllChanges(msg string) error {
 	var tip *git2go.Commit

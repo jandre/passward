@@ -18,20 +18,7 @@ func VaultAddUser(name string, email string) {
 		log.Fatal("There was a problem loading the configuration. Did you run `passward setup?`", err)
 	}
 
-	var vault *passward.Vault
-
-	if name != "" {
-		vault = pw.GetVault(name)
-
-		if vault == nil {
-			log.Fatal("Vault not found: " + name)
-		}
-	} else {
-		vault = pw.GetSelectedVault()
-		if vault == nil {
-			log.Fatal("No vault found; you need to run `passward vault use name` to select a vault or `passward vault new <name>` to create one.")
-		}
-	}
+	vault := chooseVault(pw, name)
 
 	passphrase := prompt.PasswordMasked("Enter your passphrase to unlock your keys (empty for none)")
 	if err := pw.Unlock(passphrase); err != nil {
@@ -46,6 +33,9 @@ func VaultAddUser(name string, email string) {
 		log.Fatal("Unable to set add user: ", err)
 	}
 
-	fmt.Printf("User for `%s` successfully added: %s.\n", vault.Name, email)
-	fmt.Println("You will want to ensure that the ssh key has permission to the remote repository.")
+	fmt.Printf("User `%s` successfully saved to vault: %s.\n", email, vault.Name)
+	if vault.HasRemote() {
+		fmt.Println("1. Sync your changes by running `passward vault sync`.")
+		fmt.Println("2. You will want to ensure that the ssh key has permission to the remote repository.")
+	}
 }

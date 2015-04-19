@@ -19,20 +19,7 @@ func VaultSync(name string) {
 		log.Fatal("There was a problem loading the configuration. Did you run `passward setup?`", err)
 	}
 
-	var vault *passward.Vault
-
-	if name != "" {
-		vault = pw.GetVault(name)
-
-		if vault == nil {
-			log.Fatal("Vault not found: " + name)
-		}
-	} else {
-		vault = pw.GetSelectedVault()
-		if vault == nil {
-			log.Fatal("No vault found; you need to run `passward vault use name` to select a vault or `passward vault new <name>` to create one.")
-		}
-	}
+	vault := chooseVault(pw, name)
 
 	passphrase := prompt.PasswordMasked("Enter your passphrase to unlock your keys (empty for none)")
 

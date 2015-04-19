@@ -28,6 +28,13 @@ type Vault struct {
 	git         *Git         `toml:"-"`
 }
 
+//
+// HasRemote returns true if the vault has a remote set.
+//
+func (v *Vault) HasRemote() bool {
+	return v.git.HasRemote()
+}
+
 func (v *Vault) AddUser(email string, publicKey string) (*VaultUser, error) {
 	// TODO
 	return nil, nil
