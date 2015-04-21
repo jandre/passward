@@ -77,6 +77,9 @@ func Run() {
 	case vaultAddUser.FullCommand():
 		commands.VaultAddUser(*vaultAddUserVaultName, *vaultAddUserEmail)
 
+	case vaultRemoveUser.FullCommand():
+		commands.VaultRemoveUser(*vaultRemoveUserVaultName, *vaultRemoveUserEmail)
+
 	case vaultNew.FullCommand():
 		commands.VaultNew(*vaultNewName)
 

@@ -28,8 +28,19 @@ type Vault struct {
 	git         *Git         `toml:"-"`
 }
 
+//
+// RemoveUser removes a user from the vault with an email `email`
+//
 func (v *Vault) RemoveUser(email string) error {
-	panic("not implemented")
+	err := v.users.removeByEmail(email)
+
+	if err != nil {
+		debug("unable to remove user: %s", err)
+		return err
+	}
+
+	v.Save("Remove user:" + email)
+
 	return nil
 }
 

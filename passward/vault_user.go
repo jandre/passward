@@ -19,13 +19,37 @@ type VaultUsers struct {
 	users map[string]*VaultUser
 }
 
+//
+// NewVaultUsers creates a container for a vault's users at the `parentPath`
+//
 func NewVaultUsers(parentPath string) *VaultUsers {
 	vaultUsersFolder := path.Join(parentPath, "users")
 	result := VaultUsers{path: vaultUsersFolder, users: make(map[string]*VaultUser, 0)}
 	return &result
 }
 
-// add a new vault user
+//
+// helper to remove user with the given email address
+//
+func (vu *VaultUsers) removeByEmail(email string) error {
+
+	user := vu.users[email]
+
+	if user == nil {
+		return errors.New("No user found to remove:" + email)
+	}
+
+	err := user.Remove()
+
+	vu.users[email] = nil
+
+	return err
+}
+
+//
+// AddUser adds a new user with the provided `email` and `publicKeyString`.
+// The `masterPassphrase` is encrypted with their public key.
+//
 func (vu *VaultUsers) AddUser(email string, publicKeyString string, masterPassphrase []byte) error {
 	if vu.users[email] != nil {
 		return errors.New("User already exists in vault:" + email)
@@ -78,6 +102,10 @@ type VaultUser struct {
 	publicKeyString    string
 	encryptedMasterKey string
 	publicKey          sshcrypt.PublicKey
+}
+
+func (vu *VaultUser) Remove() error {
+	return os.RemoveAll(vu.path)
 }
 
 func (vu *VaultUser) UnlockMasterKey(keyring *SshKeyRing) ([]byte, error) {

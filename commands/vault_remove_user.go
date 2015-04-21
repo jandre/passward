@@ -28,12 +28,12 @@ func VaultRemoveUser(name string, email string) {
 
 	user := vault.GetUserByEmail(email)
 
-	if user != nil {
-		fmt.Printf("User %s could not be found in vault %s.\n", email, name)
+	if user == nil {
+		fmt.Printf("User %s could not be found in vault %s.\n", email, vault.Name)
 		os.Exit(1)
 	}
 
-	prompt.Confirm(fmt.Sprintf("Are you sure you want to remove the user %s", email))
+	prompt.Confirm(fmt.Sprintf("Are you sure you want to remove the user %s?", email))
 
 	err = vault.RemoveUser(email)
 	if err != nil {

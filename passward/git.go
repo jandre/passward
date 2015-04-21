@@ -2,6 +2,7 @@ package passward
 
 import (
 	"errors"
+	"fmt"
 	"regexp"
 	"time"
 
@@ -254,7 +255,8 @@ func (git *Git) findDeletedEntries() (paths []string, err error) {
 	c := idx.EntryCount()
 	for i := uint(0); i < c; i++ {
 		entry, err := idx.EntryByIndex(i)
-		if err != nil && !util.PathExists(entry.Path) {
+		if err != nil && !util.PathExists(path.join(git.Path, entry.Path)) {
+			fmt.Println("XXX", entry.Path, err)
 			paths = append(paths, entry.Path)
 		}
 	}
