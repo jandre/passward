@@ -39,7 +39,7 @@ func (v *Vault) RemoveUser(email string) error {
 		return err
 	}
 
-	v.Save("Remove user:" + email)
+	v.Save("Remove user: " + email)
 
 	return nil
 }
